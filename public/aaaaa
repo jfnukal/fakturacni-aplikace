@@ -1,0 +1,187 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { db, storage } from './firebase';
+import {
+  Plus,
+  Trash2,
+  Settings,
+  Building,
+  FileText,
+  Copy,
+  Upload,
+  Eye,
+  Edit,
+  Save,
+} from 'lucide-react';
+
+const CzechInvoiceGenerator = () => {
+  // --- Stavy pro UI ---
+  const [activeTab, setActiveTab] = useState('invoices');
+  const [currentView, setCurrentView] = useState('list');
+  const [customerView, setCustomerView] = useState('list');
+  const fileInputRef = useRef(null);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [logoPreview, setLogoPreview] = useState('');
+
+  // --- Stavy pro data ---
+  const [supplier, setSupplier] = useState({
+    name: '', address: '', zip: '', city: '', ico: '', dic: '', bankAccount: '', paymentMethod: 'Převodem', logoUrl: '',
+  });
+  const [vatSettings, setVatSettings] = useState({ enabled: false, rate: 21 });
+  const [invoices, setInvoices] = useState([]);
+  const [savedCustomers, setSavedCustomers] = useState([]);
+
+  // --- Načítání dat z Firebase ---
+  useEffect(() => {
+    const unsubscribe = db.collection('invoices').orderBy('number', 'desc').onSnapshot((snapshot) => {
+      setInvoices(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = db.collection('customers').orderBy('name').onSnapshot((snapshot) => {
+      setSavedCustomers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const settingsDoc = db.collection('settings').doc('main');
+    const unsubscribe = settingsDoc.onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.supplierDetails) setSupplier(data.supplierDetails);
+        if (data.vatDetails) setVatSettings(data.vatDetails);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) {
+        URL.revokeObjectURL(logoPreview);
+      }
+    };
+  }, [logoPreview]);
+
+  // --- Šablony ---
+  const getNewInvoice = () => {
+    const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map((inv) => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
+    return {
+      id: Date.now(),
+      number: `2025-${String(nextInvoiceNumber).padStart(3, '0')}`,
+      issueDate: new Date().toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      duzpDate: new Date().toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      dueDate: '', dueDays: 14, currency: 'CZK',
+      customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
+      items: [{ id: Date.now(), quantity: 1, unit: 'ks', description: '', pricePerUnit: 0, totalPrice: 0 }],
+      status: 'draft',
+    };
+  };
+
+  const [currentInvoice, setCurrentInvoice] = useState(getNewInvoice());
+
+  // --- Funkce pro správu dat ---
+  const saveSettings = async () => { /* ... */ };
+  const saveInvoice = async () => { /* ... */ };
+  const cloneInvoice = (invoiceToClone) => { /* ... */ };
+  const deleteInvoice = async (id) => { /* ... */ };
+  const saveCustomer = async () => { /* ... */ };
+  const deleteCustomer = async (id) => { /* ... */ };
+  const editCustomer = (customer) => { /* ... */ };
+
+  // --- Ostatní pomocné funkce ---
+  const calculateTotals = (invoice = currentInvoice) => { /* ... */ };
+  const addItem = () => { /* ... */ };
+  const removeItem = (id) => { /* ... */ };
+  const updateItem = (id, field, value) => { /* ... */ };
+  const calculateDueDate = (issueDate, days) => { /* ... */ };
+  const editInvoice = (invoice) => { /* ... */ };
+  const selectCustomerAndCreateInvoice = (customer) => { /* ... */ };
+
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const localUrl = URL.createObjectURL(file);
+    setLogoPreview(localUrl);
+    const storageRef = storage.ref(`logos/${Date.now()}_${file.name}`);
+    try {
+      await storageRef.put(file);
+      const fileUrl = await storageRef.getDownloadURL();
+      setSupplier({ ...supplier, logoUrl: fileUrl });
+    } catch (error) {
+      console.error('Chyba při nahrávání loga: ', error);
+      alert('Chyba při nahrávání loga.');
+    }
+  };
+
+  // --- Pomocné komponenty pro UI ---
+  const TabButton = ({ id, children, icon: Icon }) => ( /* ... */ );
+  const StatusBadge = ({ status }) => ( /* ... */ );
+  const InvoicePreview = ({ invoice }) => { /* ... */ };
+
+  // --- HLAVNÍ RENDER ---
+  return (
+    <div className="max-w-6xl mx-auto p-4 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* ... Navigační záložky ... */}
+        <div className="p-6">
+          {/* FAKTURY */}
+          {activeTab === 'invoices' && (
+             // ... JSX pro FAKTURY ...
+          )}
+
+          {/* ODBĚRATELÉ */}
+          {activeTab === 'customers' && (
+            <div className="space-y-6">
+              {customerView === 'list' && (
+                // ... JSX pro SEZNAM ODBĚRATELŮ ...
+              )}
+              {customerView === 'edit' && editingCustomer && (
+                <div className="space-y-6">
+                  {/* ... hlavička formuláře ... */}
+                  <div className="bg-gray-50 rounded-lg p-6 grid md:grid-cols-2 gap-4">
+                    <input type="text" placeholder="Název firmy" value={editingCustomer.name} onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })} className="md:col-span-2 w-full p-2 border rounded" />
+                    <input type="text" placeholder="Adresa" value={editingCustomer.address} onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })} className="w-full p-2 border rounded" />
+                    <input type="text" placeholder="PSČ" value={editingCustomer.zip || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, zip: e.target.value })} className="w-full p-2 border rounded" />
+                    <input type="text" placeholder="Město" value={editingCustomer.city} onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })} className="w-full p-2 border rounded" />
+                    <input type="text" placeholder="IČO" value={editingCustomer.ico} onChange={(e) => setEditingCustomer({ ...editingCustomer, ico: e.target.value })} className="w-full p-2 border rounded" />
+                    <input type="text" placeholder="DIČ" value={editingCustomer.dic} onChange={(e) => setEditingCustomer({ ...editingCustomer, dic: e.target.value })} className="w-full p-2 border rounded" />
+                    <textarea value={editingCustomer.notes || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })} placeholder="Poznámky..." rows="3" className="md:col-span-2 w-full p-2 border rounded" />
+                  </div>
+                  {/* ... tlačítka Uložit a Zrušit ... */}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* NASTAVENÍ */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              {/* ... nadpis a sekce Logo ... */}
+              <div className="bg-white p-6 rounded-lg border">
+                <h3 className="text-lg font-medium mb-4">Údaje dodavatele</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <input type="text" placeholder="Název/Jméno" value={supplier.name} onChange={(e) => setSupplier({ ...supplier, name: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="Adresa" value={supplier.address} onChange={(e) => setSupplier({ ...supplier, address: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="PSČ" value={supplier.zip || ''} onChange={(e) => setSupplier({ ...supplier, zip: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="Město" value={supplier.city} onChange={(e) => setSupplier({ ...supplier, city: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="IČO" value={supplier.ico} onChange={(e) => setSupplier({ ...supplier, ico: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="DIČ" value={supplier.dic} onChange={(e) => setSupplier({ ...supplier, dic: e.g.value })} className="w-full p-2 border rounded" />
+                  <input type="text" placeholder="Bankovní účet" value={supplier.bankAccount} onChange={(e) => setSupplier({ ...supplier, bankAccount: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+              {/* ... tlačítko Uložit nastavení ... */}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CzechInvoiceGenerator;
