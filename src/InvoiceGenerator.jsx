@@ -56,20 +56,19 @@ const CzechInvoiceGenerator = () => {
   }, [logoPreview]);
 
   // --- Šablona nové faktury ---
-  function getNewInvoice() {
-    const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
-    return {
-      id: Date.now(),
-      number: `2025-${String(nextInvoiceNumber).padStart(3, '0')}`,
-      issueDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
-      duzpDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
-      dueDate: '', dueDays: 14, currency: 'CZK',
-      customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
-      items: [{ id: Date.now(), quantity: 1, unit: 'ks', description: '', pricePerUnit: 0, totalPrice: 0 }],
-      status: 'draft',
+      function getNewInvoice() {
+      // Číslo faktury se teď bude počítat až při kliknutí na tlačítko
+      return {
+        id: Date.now(),
+        number: '', // Dočasně prázdné
+        issueDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
+        duzpDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
+        dueDate: '', dueDays: 14, currency: 'CZK',
+        customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
+        items: [{ id: Date.now(), quantity: 1, unit: 'ks', description: '', pricePerUnit: 0, totalPrice: 0 }],
+        status: 'draft',
+      };
     };
-  };
-
   const [currentInvoice, setCurrentInvoice] = useState(getNewInvoice());
 
   // --- Funkce pro správu dat ---
@@ -452,7 +451,19 @@ const CzechInvoiceGenerator = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Přehled faktur</h2>
-                    <button onClick={() => { setCurrentInvoice(getNewInvoice()); setEditingInvoice(null); setCurrentView('create'); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <button
+                      onClick={() => {
+                        // Zde si dopočítáme další číslo v řadě
+                        const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
+                        const newInvoice = getNewInvoice(); // Vezmeme si šablonu
+                        newInvoice.number = `2025-${String(nextInvoiceNumber).padStart(3, '0')}`; // A doplníme správné číslo
+                    
+                        setCurrentInvoice(newInvoice);
+                        setEditingInvoice(null);
+                        setCurrentView('create');
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
                       <Plus size={16} /> Nová faktura
                     </button>
                   </div>
