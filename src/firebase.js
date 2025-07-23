@@ -14,11 +14,9 @@ const firebaseConfig = {
   measurementId: 'G-7NZMSVGHTW',
 };
 
-// Inicializace Firebase, pokud ještě nebyla inicializována
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// Nejprve inicializujeme aplikaci
+const app = firebase.initializeApp(firebaseConfig);
 
-// Export databáze pro použití v dalších komponentách
-export const db = firebase.firestore();
-export const storage = firebase.storage();
+// Až z inicializované aplikace exportujeme databázi a storage
+export const db = app.firestore();
+export const storage = app.storage();
