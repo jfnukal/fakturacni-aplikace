@@ -56,7 +56,7 @@ const CzechInvoiceGenerator = () => {
   }, [logoPreview]);
 
   // --- Šablona nové faktury ---
-  const getNewInvoice = () => {
+  function getNewInvoice() {
     const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
     return {
       id: Date.now(),
