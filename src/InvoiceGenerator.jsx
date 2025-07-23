@@ -4,6 +4,21 @@ import { collection, query, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteD
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Plus, Trash2, Settings, Building, FileText, Copy, Upload, Eye, Edit, Save } from 'lucide-react';
 
+// Změna 1: Funkce je definována jako 'function', aby byla přístupná dříve (hoisting)
+// a nezávisí na stavu 'invoices'.
+function getNewInvoice() {
+  return {
+    id: Date.now(),
+    number: '', // Číslo se dopočítá až při kliknutí
+    issueDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
+    duzpDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
+    dueDate: '', dueDays: 14, currency: 'CZK',
+    customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
+    items: [{ id: Date.now(), quantity: 1, unit: 'ks', description: '', pricePerUnit: 0, totalPrice: 0 }],
+    status: 'draft',
+  };
+};
+
 const CzechInvoiceGenerator = () => {
   // --- Stavy pro UI ---
   const [activeTab, setActiveTab] = useState('invoices');
@@ -20,6 +35,7 @@ const CzechInvoiceGenerator = () => {
   const [vatSettings, setVatSettings] = useState({ enabled: false, rate: 21 });
   const [invoices, setInvoices] = useState([]);
   const [savedCustomers, setSavedCustomers] = useState([]);
+  const [currentInvoice, setCurrentInvoice] = useState(getNewInvoice());
 
   // --- Načítání dat z Firebase ---
   useEffect(() => {
@@ -54,22 +70,6 @@ const CzechInvoiceGenerator = () => {
   useEffect(() => {
     return () => { if (logoPreview) URL.revokeObjectURL(logoPreview); };
   }, [logoPreview]);
-
-  // --- Šablona nové faktury ---
-      function getNewInvoice() {
-      // Číslo faktury se teď bude počítat až při kliknutí na tlačítko
-      return {
-        id: Date.now(),
-        number: '', // Dočasně prázdné
-        issueDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
-        duzpDate: new Date().toLocaleDateString('cs-CZ', {day: '2-digit', month: '2-digit', year: 'numeric'}),
-        dueDate: '', dueDays: 14, currency: 'CZK',
-        customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
-        items: [{ id: Date.now(), quantity: 1, unit: 'ks', description: '', pricePerUnit: 0, totalPrice: 0 }],
-        status: 'draft',
-      };
-    };
-  const [currentInvoice, setCurrentInvoice] = useState(getNewInvoice());
 
   // --- Funkce pro správu dat ---
   const saveSettings = async () => {
@@ -280,14 +280,13 @@ const CzechInvoiceGenerator = () => {
       alert('Chyba při nahrávání loga.');
     }
   };
-
+  
   const fetchFromAres = async (ico, target) => {
     if (!ico || !/^\d{8}$/.test(ico)) {
       alert('Zadejte platné osmimístné IČO.');
       return;
     }
     
-    const aresUrl = `https://ares.gov.cz/ekonomicke-subjekty-v-ares/vysledky?ico=${ico}&pocet=1`;
     const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
 
     try {
@@ -389,7 +388,7 @@ const CzechInvoiceGenerator = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left p-3 text-sm font-medium">Popis</th>
+                <th className="text-left p-3 text-sm font-medium w-1/2">Popis</th>
                 <th className="text-center p-3 text-sm font-medium">Počet</th>
                 <th className="text-center p-3 text-sm font-medium">MJ</th>
                 <th className="text-right p-3 text-sm font-medium">Cena za MJ</th>
@@ -402,8 +401,8 @@ const CzechInvoiceGenerator = () => {
                   <td className="p-3">{item.description}</td>
                   <td className="p-3 text-center">{item.quantity}</td>
                   <td className="p-3 text-center">{item.unit}</td>
-                  <td className="p-3 text-right">{item.pricePerUnit.toFixed(2)} Kč</td>
-                  <td className="p-3 text-right">{item.totalPrice.toFixed(2)} Kč</td>
+                  <td className="p-3 text-right">{Number(item.pricePerUnit).toFixed(2)} Kč</td>
+                  <td className="p-3 text-right">{Number(item.totalPrice).toFixed(2)} Kč</td>
                 </tr>
               ))}
             </tbody>
@@ -453,17 +452,15 @@ const CzechInvoiceGenerator = () => {
                     <h2 className="text-2xl font-bold">Přehled faktur</h2>
                     <button
                       onClick={() => {
-                        // Zde si dopočítáme další číslo v řadě
                         const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
-                        const newInvoice = getNewInvoice(); // Vezmeme si šablonu
-                        newInvoice.number = `2025-${String(nextInvoiceNumber).padStart(3, '0')}`; // A doplníme správné číslo
-                    
+                        const newInvoice = getNewInvoice();
+                        newInvoice.number = `2025-${String(nextInvoiceNumber).padStart(3, '0')}`;
+                        
                         setCurrentInvoice(newInvoice);
                         setEditingInvoice(null);
                         setCurrentView('create');
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                       <Plus size={16} /> Nová faktura
                     </button>
                   </div>
@@ -527,7 +524,7 @@ const CzechInvoiceGenerator = () => {
                           <input type="text" placeholder="Číslo faktury" value={currentInvoice.number} onChange={(e) => setCurrentInvoice({ ...currentInvoice, number: e.target.value })} className="w-full p-2 border rounded" />
                           <input type="text" placeholder="Datum vystavení" value={currentInvoice.issueDate} onChange={(e) => setCurrentInvoice({ ...currentInvoice, issueDate: e.target.value, dueDate: calculateDueDate(e.target.value, currentInvoice.dueDays) })} className="w-full p-2 border rounded" />
                           <input type="text" placeholder="DUZP" value={currentInvoice.duzpDate} onChange={(e) => setCurrentInvoice({ ...currentInvoice, duzpDate: e.target.value })} className="w-full p-2 border rounded" />
-                          <input type="number" placeholder="Splatnost (dny)" value={currentInvoice.dueDays} onChange={(e) => { const days = parseInt(e.target.value); setCurrentInvoice({ ...currentInvoice, dueDays: days, dueDate: calculateDueDate(currentInvoice.issueDate, days) }); }} className="w-full p-2 border rounded" />
+                          <input type="number" placeholder="Splatnost (dny)" value={currentInvoice.dueDays} onChange={(e) => { const days = parseInt(e.target.value, 10) || 0; setCurrentInvoice({ ...currentInvoice, dueDays: days, dueDate: calculateDueDate(currentInvoice.issueDate, days) }); }} className="w-full p-2 border rounded" />
                       </div>
                       <div>
                         <div className="flex justify-between items-center mb-3">
@@ -560,7 +557,7 @@ const CzechInvoiceGenerator = () => {
                               <div className="col-span-2"><input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full p-1 border rounded text-sm" placeholder="Počet" /></div>
                               <div className="col-span-1"><input type="text" value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} className="w-full p-1 border rounded text-sm" placeholder="MJ" /></div>
                               <div className="col-span-2"><input type="number" value={item.pricePerUnit} onChange={(e) => updateItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)} className="w-full p-1 border rounded text-sm" placeholder="Cena" step="0.01" /></div>
-                              <div className="col-span-2"><input type="text" value={item.totalPrice.toFixed(2)} readOnly className="w-full p-1 border rounded text-sm bg-gray-50" /></div>
+                              <div className="col-span-2"><input type="text" value={Number(item.totalPrice).toFixed(2)} readOnly className="w-full p-1 border rounded text-sm bg-gray-50" /></div>
                               <div className="col-span-1 flex justify-center"><button onClick={() => removeItem(item.id)} className="p-1 text-red-600 hover:text-red-800"><Trash2 size={16} /></button></div>
                             </div>
                           ))}
@@ -581,7 +578,6 @@ const CzechInvoiceGenerator = () => {
               )}
             </>
           )}
-
           {activeTab === 'customers' && (
             <div className="space-y-6">
               {customerView === 'list' && (
@@ -652,7 +648,6 @@ const CzechInvoiceGenerator = () => {
               )}
             </div>
           )}
-
           {activeTab === 'settings' && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Nastavení</h2>
