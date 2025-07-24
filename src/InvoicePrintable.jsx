@@ -12,7 +12,7 @@ const InvoicePrintable = React.forwardRef(({ invoice, supplier, vatSettings }, r
   const { subtotal, vatAmount, total } = calculateTotals();
 
   return (
-    <div ref={ref} className="p-10 bg-white text-black" style={{ width: '210mm', minHeight: '297mm', fontFamily: 'sans-serif', fontSize: '10pt' }}>
+    <div ref={ref} className="p-8 bg-white text-black" style={{ width: '210mm', minHeight: '297mm', fontFamily: 'sans-serif', fontSize: '10pt' }}>
       
       <div className="flex justify-between items-start mb-10">
         <div className="flex items-center gap-4">
