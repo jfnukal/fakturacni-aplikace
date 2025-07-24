@@ -320,87 +320,32 @@ const InvoiceGenerator = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log(`📤 Uploading logo (${ENV_CONFIG.current} mode)`);
-
-    // Kontroly
+    // Kontrola velikosti souboru (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert('Obrázek je příliš velký. Maximum je 2MB.');
+      alert('Obrázek je příliš velký. Maximum jsou 2MB.');
       return;
     }
 
+    // Zobrazíme lokální náhled
+    const localUrl = URL.createObjectURL(file);
+    setLogoPreview(localUrl);
+
+    // Nahrání na Firebase Storage
+    // Cesta je nyní unikátní pro každého uživatele
+    const storageRef = ref(
+      storage,
+      `logos/${currentUser.uid}/${Date.now()}_${file.name}`
+    );
     try {
-      // Preview vždy
-      const reader = new FileReader();
-      reader.onload = (e) => setLogoPreview(e.target.result);
-      reader.readAsDataURL(file);
-
-      // Podle prostředí zvolíme metodu
-      if (ENV_CONFIG.storage[ENV_CONFIG.current] === 'base64') {
-        await uploadLogoBase64(file);
-      } else {
-        await uploadLogoFirebase(file);
-      }
+      await uploadBytes(storageRef, file);
+      const fileUrl = await getDownloadURL(storageRef);
+      setSupplier({ ...supplier, logoUrl: fileUrl });
+      alert('Logo úspěšně nahráno. Nezapomeňte uložit nastavení.');
     } catch (error) {
-      console.error('❌ Upload error:', error);
-      alert(`Chyba při nahrávání: ${error.message}`);
-      setLogoPreview('');
+      console.error('Chyba při nahrávání loga na Firebase: ', error);
+      alert('Chyba při nahrávání loga.');
+      setLogoPreview(''); // Smažeme náhled, pokud nahrávání selže
     }
-  };
-
-  // Base64 upload (WebContainer)
-  const uploadLogoBase64 = async (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Data = e.target.result;
-        setSupplier({ ...supplier, logoUrl: base64Data });
-        setLogoPreview('');
-
-        console.log('✅ Logo saved as base64');
-        alert('✅ Logo nahráno (base64 method)');
-        resolve();
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Firebase Storage upload (Production)
-  const uploadLogoFirebase = async (file) => {
-    const fileName = `${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, `logos/${fileName}`);
-
-    console.log('📤 Uploading to Firebase Storage...');
-
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`📊 Upload progress: ${progress.toFixed(1)}%`);
-        },
-        (error) => {
-          console.error('❌ Firebase upload error:', error);
-          reject(error);
-        },
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setSupplier({ ...supplier, logoUrl: downloadURL });
-            setLogoPreview('');
-
-            console.log('✅ Logo saved to Firebase Storage');
-            alert('✅ Logo nahráno (Firebase method)');
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        }
-      );
-    });
   };
 
   const fetchFromAres = async (ico, target) => {
@@ -1548,7 +1493,7 @@ const InvoiceGenerator = () => {
               <h2 className="text-2xl font-bold">Nastavení</h2>
 
               {/* Environment Debug Panel - PŘIDEJTE TADY */}
-             
+
               <div className="bg-white p-6 rounded-lg border">
                 <h3 className="text-lg font-medium mb-4">Logo firmy</h3>
                 <div className="flex items-center gap-4">
