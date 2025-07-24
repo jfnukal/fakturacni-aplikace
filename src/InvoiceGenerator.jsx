@@ -297,25 +297,23 @@ const CzechInvoiceGenerator = () => {
     if (!response.ok) { throw new Error('Chyba při komunikaci s ARES.'); }
     const data = await response.json();
     
-    // ZMĚNA: Přístup ke starému formátu dat
-    const subjects = data.vysledky?.subjekty || [];
-    const subject = subjects[0];
+    // OPRAVA: Data jsou přímo v objektu, ne v poli ekonomickeSubjekty
+    const subject = data; // ✅ Toto je správně!
     
-    if (!subject) {
+    if (!subject || !subject.obchodniJmeno) {
       alert('Firma s daným IČO nebyla v databázi ARES nalezena.');
       return;
     }
     
     const aresData = {
-      name: subject.nazev,
-      address: subject.adresa?.radek1 || '',
-      zip: subject.adresa?.psc || '',
-      city: subject.adresa?.nazevObce || '',
+      name: subject.obchodniJmeno,
+      address: `${subject.sidlo?.nazevUlice || ''} ${subject.sidlo?.cisloDomovni || ''}${subject.sidlo?.cisloOrientacni ? '/' + subject.sidlo.cisloOrientacni : ''}`.trim(),
+      zip: subject.sidlo?.psc || '',
+      city: subject.sidlo?.nazevObce || '',
       ico: subject.ico,
       dic: subject.dic || '',
     };
     
-    // Zbytek zůstává stejný...
     if (target === 'invoice') {
       setCurrentInvoice(prev => ({...prev, customer: { ...prev.customer, ...aresData } }));
     } else if (target === 'customer') {
