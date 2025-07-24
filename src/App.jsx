@@ -1,8 +1,13 @@
-import InvoiceGenerator from './InvoiceGenerator.jsx';
-import './index.css'; // Ujisti se, že jsou zde načteny Tailwind styly
+import React from 'react';
+import { useAuth } from './context/AuthContext';
+import LoginPage from './components/LoginPage.jsx';
+import InvoiceGenerator from './components/InvoiceGenerator.jsx';
+import './index.css';
 
 function App() {
-  return <InvoiceGenerator />;
+  const { currentUser } = useAuth();
+
+  return currentUser ? <InvoiceGenerator /> : <LoginPage />;
 }
 
 export default App;
