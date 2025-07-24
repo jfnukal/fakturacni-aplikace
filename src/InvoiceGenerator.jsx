@@ -285,41 +285,47 @@ const CzechInvoiceGenerator = () => {
   };
   
   const fetchFromAres = async (ico, target) => {
-    if (!ico || !/^\d{8}$/.test(ico)) {
-      alert('Zadejte platné osmimístné IČO.');
+  if (!ico || !/^\d{8}$/.test(ico)) {
+    alert('Zadejte platné osmimístné IČO.');
+    return;
+  }
+  
+  const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
+
+  try {
+    const response = await fetch(proxiedUrl);
+    if (!response.ok) { throw new Error('Chyba při komunikaci s ARES.'); }
+    const data = await response.json();
+    
+    // ZMĚNA: Přístup ke starému formátu dat
+    const subjects = data.vysledky?.subjekty || [];
+    const subject = subjects[0];
+    
+    if (!subject) {
+      alert('Firma s daným IČO nebyla v databázi ARES nalezena.');
       return;
     }
     
-    const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
-
-    try {
-      const response = await fetch(proxiedUrl);
-      if (!response.ok) { throw new Error('Chyba při komunikaci s ARES.'); }
-      const data = await response.json();
-      const subject = data.ekonomickeSubjekty[0];
-      if (!subject) {
-        alert('Firma s daným IČO nebyla v databázi ARES nalezena.');
-        return;
-      }
-      const aresData = {
-        name: subject.obchodniJmeno,
-        address: `${subject.sidlo.ulice || ''} ${subject.sidlo.cisloOrientacni ? subject.sidlo.cisloOrientacni : ''}`.trim(),
-        zip: subject.sidlo.psc,
-        city: subject.sidlo.nazevObce,
-        ico: subject.ico,
-        dic: subject.dic || '',
-      };
-      
-      if (target === 'invoice') {
-          setCurrentInvoice(prev => ({...prev, customer: { ...prev.customer, ...aresData } }));
-      } else if (target === 'customer') {
-          setEditingCustomer(prev => ({...prev, ...aresData }));
-      }
-    } catch (error) {
-      console.error('Chyba při načítání z ARES: ', error);
-      alert(error.message || 'Nepodařilo se načíst data z ARES.');
+    const aresData = {
+      name: subject.nazev,
+      address: subject.adresa?.radek1 || '',
+      zip: subject.adresa?.psc || '',
+      city: subject.adresa?.nazevObce || '',
+      ico: subject.ico,
+      dic: subject.dic || '',
+    };
+    
+    // Zbytek zůstává stejný...
+    if (target === 'invoice') {
+      setCurrentInvoice(prev => ({...prev, customer: { ...prev.customer, ...aresData } }));
+    } else if (target === 'customer') {
+      setEditingCustomer(prev => ({...prev, ...aresData }));
     }
-  };
+  } catch (error) {
+    console.error('Chyba při načítání z ARES: ', error);
+    alert(error.message || 'Nepodařilo se načíst data z ARES.');
+  }
+};
 
   const handleDownloadPdf = (invoice) => {
     const element = document.createElement('div');
