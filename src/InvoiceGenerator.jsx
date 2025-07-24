@@ -330,7 +330,7 @@ const CzechInvoiceGenerator = () => {
     root.render(invoiceComponent);
   
     const opt = {
-      margin:       3,
+      margin:       2,
       filename:     `faktura-${invoice.number}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true },
