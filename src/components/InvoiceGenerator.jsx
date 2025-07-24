@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db, storage } from '../firebase';
+import { useAuth } from '../context/AuthContext'; // Přidán import pro uživatele
 import {
   collection,
   query,
+  where,
   orderBy,
   onSnapshot,
   addDoc,
@@ -11,7 +13,7 @@ import {
   deleteDoc,
   setDoc,
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   Plus,
   Trash2,
@@ -23,55 +25,16 @@ import {
   Eye,
   Edit,
   Save,
-  Download,
-  Share2,
+  LogOut,
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import InvoicePrintable from './InvoicePrintable.jsx';
 import ReactDOM from 'react-dom/client';
 
-// === ENVIRONMENT CONFIG ===
-const ENVIRONMENTS = {
-  WEBCONTAINER: 'webcontainer',
-  PRODUCTION: 'production',
-};
-
-// Auto-detekce nebo manuální nastavení
-const detectEnvironment = () => {
-  // Auto-detekce WebContainer
-  if (
-    window.location.hostname.includes('webcontainer') ||
-    window.location.hostname.includes('stackblitz') ||
-    window.location.hostname.includes('local-credentialless')
-  ) {
-    return ENVIRONMENTS.WEBCONTAINER;
-  }
-  return ENVIRONMENTS.PRODUCTION;
-};
-
-// Globální konfigurace
-const ENV_CONFIG = {
-  current: detectEnvironment(),
-
-  // Můžete manuálně přepnout zde:
-  // current: ENVIRONMENTS.WEBCONTAINER, // Pro vývoj
-  // current: ENVIRONMENTS.PRODUCTION,   // Pro produkci
-
-  storage: {
-    [ENVIRONMENTS.WEBCONTAINER]: 'base64',
-    [ENVIRONMENTS.PRODUCTION]: 'firebase',
-  },
-};
-
-console.log('🌍 Environment detected:', ENV_CONFIG.current);
-console.log('💾 Storage method:', ENV_CONFIG.storage[ENV_CONFIG.current]);
-
-// Změna 1: Funkce je definována jako 'function', aby byla přístupná dříve (hoisting)
-// a nezávisí na stavu 'invoices'.
 function getNewInvoice() {
   return {
     id: Date.now(),
-    number: '', // Číslo se dopočítá až při kliknutí
+    number: '',
     issueDate: new Date().toLocaleDateString('cs-CZ', {
       day: '2-digit',
       month: '2-digit',
@@ -101,7 +64,8 @@ function getNewInvoice() {
 }
 
 const InvoiceGenerator = () => {
-  // --- Stavy pro UI ---
+  const { currentUser, logout } = useAuth(); // Získáme info o přihlášeném uživateli
+
   const [activeTab, setActiveTab] = useState('invoices');
   const [currentView, setCurrentView] = useState('list');
   const [customerView, setCustomerView] = useState('list');
@@ -110,8 +74,6 @@ const InvoiceGenerator = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [logoPreview, setLogoPreview] = useState('');
-
-  // --- Stavy pro data ---
   const [supplier, setSupplier] = useState({
     name: '',
     address: '',
@@ -128,9 +90,14 @@ const InvoiceGenerator = () => {
   const [savedCustomers, setSavedCustomers] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState(getNewInvoice());
 
-  // --- Načítání dat z Firebase ---
+  // --- Načítání dat z Firebase (upraveno pro konkrétního uživatele) ---
   useEffect(() => {
-    const q = query(collection(db, 'invoices'), orderBy('number', 'desc'));
+    if (!currentUser) return; // Pokud není uživatel přihlášen, nic nenačítej
+    const q = query(
+      collection(db, 'invoices'),
+      where('userId', '==', currentUser.uid),
+      orderBy('number', 'desc')
+    );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       setInvoices(
         querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -138,20 +105,26 @@ const InvoiceGenerator = () => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]); // Spustí se znovu, když se změní uživatel
 
   useEffect(() => {
-    const q = query(collection(db, 'customers'), orderBy('name'));
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'customers'),
+      where('userId', '==', currentUser.uid),
+      orderBy('name')
+    );
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       setSavedCustomers(
         querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
       );
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
-    const settingsDocRef = doc(db, 'settings', 'main');
+    if (!currentUser) return;
+    const settingsDocRef = doc(db, 'settings', currentUser.uid); // Nastavení je unikátní pro každé ID uživatele
     const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
       if (doc.exists()) {
         const data = doc.data();
@@ -160,25 +133,38 @@ const InvoiceGenerator = () => {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
-  // --- Funkce pro správu dat ---
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
+  // --- Funkce pro správu dat (upraveny pro ukládání s userId) ---
   const saveSettings = async () => {
+    if (!currentUser) return;
     try {
-      await setDoc(doc(db, 'settings', 'main'), {
+      await setDoc(doc(db, 'settings', currentUser.uid), {
         supplierDetails: supplier,
         vatDetails: vatSettings,
+        userId: currentUser.uid, // Uložíme i ID uživatele
       });
       alert('Nastavení uloženo!');
     } catch (error) {
-      console.error('Chyba při ukládání nastavení: ', error);
-      alert('Chyba při ukládání nastavení.');
+      console.error('Chyba: ', error);
     }
   };
 
   const saveInvoice = async () => {
+    if (!currentUser) return;
     const { total } = calculateTotals(currentInvoice);
-    const invoiceToSave = { ...currentInvoice, total, status: 'pending' };
+    const invoiceToSave = {
+      ...currentInvoice,
+      total,
+      status: 'pending',
+      userId: currentUser.uid,
+    }; // Přidáno userId
     delete invoiceToSave.id;
     try {
       if (editingInvoice) {
@@ -190,51 +176,24 @@ const InvoiceGenerator = () => {
       setCurrentView('list');
       setCurrentInvoice(getNewInvoice());
     } catch (error) {
-      console.error('Chyba při ukládání faktury: ', error);
-      alert('Při ukládání faktury nastala chyba!');
-    }
-  };
-
-  const cloneInvoice = (invoiceToClone) => {
-    const newInvoice = {
-      ...JSON.parse(JSON.stringify(invoiceToClone)),
-      number: getNewInvoice().number,
-      issueDate: getNewInvoice().issueDate,
-      duzpDate: getNewInvoice().duzpDate,
-      dueDate: calculateDueDate(
-        getNewInvoice().issueDate,
-        invoiceToClone.dueDays || 14
-      ),
-      status: 'draft',
-    };
-    delete newInvoice.id;
-    setCurrentInvoice(newInvoice);
-    setEditingInvoice(null);
-    setCurrentView('create');
-  };
-
-  const deleteInvoice = async (id) => {
-    if (window.confirm('Opravdu chcete smazat tuto fakturu?')) {
-      await deleteDoc(doc(db, 'invoices', id));
+      console.error('Chyba: ', error);
     }
   };
 
   const saveCustomer = async () => {
-    if (!editingCustomer || !editingCustomer.name) {
-      alert('Jméno odběratele je povinné.');
-      return;
-    }
+    if (!currentUser || !editingCustomer || !editingCustomer.name) return;
     const { id, ...customerData } = editingCustomer;
+    const customerToSave = { ...customerData, userId: currentUser.uid }; // Přidáno userId
     try {
       if (id) {
-        await updateDoc(doc(db, 'customers', id), customerData);
+        await updateDoc(doc(db, 'customers', id), customerToSave);
       } else {
-        await addDoc(collection(db, 'customers'), customerData);
+        await addDoc(collection(db, 'customers'), customerToSave);
       }
       setCustomerView('list');
       setEditingCustomer(null);
     } catch (error) {
-      console.error('Chyba při ukládání odběratele: ', error);
+      console.error('Chyba: ', error);
     }
   };
 
@@ -818,6 +777,17 @@ const InvoiceGenerator = () => {
   // --- HLAVNÍ RENDER ---
   return (
     <div className="max-w-6xl mx-auto p-4 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-sm text-gray-600">
+          Přihlášen jako: <strong>{currentUser.email}</strong>
+        </div>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm"
+        >
+          <LogOut size={14} /> Odhlásit se
+        </button>
+      </div>
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex border-b bg-gray-50 overflow-x-auto">
           <TabButton id="invoices" icon={FileText}>
@@ -1578,34 +1548,7 @@ const InvoiceGenerator = () => {
               <h2 className="text-2xl font-bold">Nastavení</h2>
 
               {/* Environment Debug Panel - PŘIDEJTE TADY */}
-              <div className="bg-gray-100 p-4 rounded-lg border">
-                <h3 className="text-lg font-medium mb-2">
-                  🔧 Environment Info
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong>Prostředí:</strong>
-                    <span
-                      className={`ml-2 px-2 py-1 rounded text-xs ${
-                        ENV_CONFIG.current === 'webcontainer'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {ENV_CONFIG.current.toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <strong>Storage:</strong>
-                    <span className="ml-2 font-mono text-xs bg-gray-200 px-2 py-1 rounded">
-                      {ENV_CONFIG.storage[ENV_CONFIG.current]}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-gray-600">
-                  Hostname: {window.location.hostname}
-                </div>
-              </div>
+             
               <div className="bg-white p-6 rounded-lg border">
                 <h3 className="text-lg font-medium mb-4">Logo firmy</h3>
                 <div className="flex items-center gap-4">
