@@ -836,120 +836,57 @@ const CzechInvoiceGenerator = () => {
             <>
               {currentView === 'list' && (
                 <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Přehled faktur</h2>
-                    <button
-                      onClick={() => {
-                        const nextInvoiceNumber =
-                          invoices.length > 0
-                            ? Math.max(
-                                ...invoices.map((inv) =>
-                                  parseInt(inv.number.split('-')[1], 10)
-                                )
-                              ) + 1
-                            : 1;
-                        const newInvoice = getNewInvoice();
-                        newInvoice.number = `2025-${String(
-                          nextInvoiceNumber
-                        ).padStart(3, '0')}`;
-
-                        setCurrentInvoice(newInvoice);
-                        setEditingInvoice(null);
-                        setCurrentView('create');
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      <Plus size={16} /> Nová faktura
-                    </button>
-                  </div>
-                  <div className="bg-white border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="text-left p-4 font-medium">Číslo</th>
-                          <th className="text-left p-4 font-medium">
-                            Odběratel
-                          </th>
-                          <th className="text-left p-4 font-medium">
-                            Vystaveno
-                          </th>
-                          <th className="text-right p-4 font-medium">Částka</th>
-                          <th className="text-center p-4 font-medium">Stav</th>
-                          <th className="text-center p-4 font-medium">Akce</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoices.map((invoice) => (
-                          <tr
-                            key={invoice.id}
-                            className="border-t hover:bg-gray-50"
-                          >
-                            <td className="p-4 font-medium">
-                              {invoice.number}
-                            </td>
-                            <td className="p-4">{invoice.customer.name}</td>
-                            <td className="p-4">{invoice.issueDate}</td>
-                            <td className="p-4 text-right font-medium">
-                              {invoice.total.toFixed(2)} Kč
-                            </td>
-                            <td className="p-4 text-center">
-                              <StatusBadge status={invoice.status} />
-                            </td>
-                            <td className="p-4">
-                              <div className="flex gap-2 justify-center">
-                                <button
-                                  onClick={() => handleDownloadPdf(invoice)}
-                                  className="p-1 text-gray-600 hover:text-gray-800"
-                                  title="Stáhnout PDF"
-                                >
-                                  <Download size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleShare(invoice)}
-                                  className="p-1 text-gray-600 hover:text-gray-800"
-                                  title="Sdílet"
-                                >
-                                  <Share2 size={16} />
-                                </button>
-                                <button
-                                  onClick={() => cloneInvoice(invoice)}
-                                  className="p-1 text-purple-600 hover:text-purple-800"
-                                  title="Klonovat"
-                                >
-                                  <Copy size={16} />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setCurrentInvoice(invoice);
-                                    setCurrentView('preview');
-                                  }}
-                                  className="p-1 text-blue-600 hover:text-blue-800"
-                                  title="Zobrazit"
-                                >
-                                  <Eye size={16} />
-                                </button>
-                                <button
-                                  onClick={() => editInvoice(invoice)}
-                                  className="p-1 text-gray-600 hover:text-gray-800"
-                                  title="Upravit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button
-                                  onClick={() => deleteInvoice(invoice.id)}
-                                  className="p-1 text-red-600 hover:text-red-800"
-                                  title="Smazat"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Přehled faktur</h2>
+                  <button
+                    onClick={() => {
+                      const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
+                      const newInvoice = getNewInvoice();
+                      newInvoice.number = `2025-${String(nextInvoiceNumber).padStart(3, '0')}`;
+                      setCurrentInvoice(newInvoice);
+                      setEditingInvoice(null);
+                      setCurrentView('create');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <Plus size={16} /> Nová faktura
+                  </button>
                 </div>
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="hidden md:table-header-group bg-gray-50">
+                      <tr>
+                        <th className="text-left p-4 font-medium">Číslo</th>
+                        <th className="text-left p-4 font-medium">Odběratel</th>
+                        <th className="text-left p-4 font-medium">Vystaveno</th>
+                        <th className="text-right p-4 font-medium">Částka</th>
+                        <th className="text-center p-4 font-medium">Stav</th>
+                        <th className="text-center p-4 font-medium">Akce</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {invoices.map((invoice) => (
+                        <tr key={invoice.id} className="block md:table-row p-4 md:p-0">
+                          <td className="block md:table-cell md:p-4 md:font-medium" data-label="Číslo: ">{invoice.number}</td>
+                          <td className="block md:table-cell md:p-4" data-label="Odběratel: ">{invoice.customer.name}</td>
+                          <td className="block md:table-cell md:p-4" data-label="Vystaveno: ">{invoice.issueDate}</td>
+                          <td className="block md:table-cell md:p-4 md:text-right md:font-medium" data-label="Částka: ">{invoice.total.toFixed(2)} Kč</td>
+                          <td className="block md:table-cell md:p-4 md:text-center" data-label="Stav: "><StatusBadge status={invoice.status} /></td>
+                          <td className="block md:table-cell md:p-4">
+                            <div className="flex gap-2 justify-end md:justify-center mt-2 md:mt-0">
+                              <button onClick={() => handleDownloadPdf(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Stáhnout PDF"><Download size={16} /></button>
+                              <button onClick={() => handleShare(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Sdílet"><Share2 size={16} /></button>
+                              <button onClick={() => cloneInvoice(invoice)} className="p-1 text-purple-600 hover:text-purple-800" title="Klonovat"><Copy size={16} /></button>
+                              <button onClick={() => { setCurrentInvoice(invoice); setCurrentView('preview'); }} className="p-1 text-blue-600 hover:text-blue-800" title="Zobrazit"><Eye size={16} /></button>
+                              <button onClick={() => editInvoice(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Upravit"><Edit size={16} /></button>
+                              <button onClick={() => deleteInvoice(invoice.id)} className="p-1 text-red-600 hover:text-red-800" title="Smazat"><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               )}
               {currentView === 'preview' && (
                 <div className="space-y-6">
@@ -1331,78 +1268,41 @@ const CzechInvoiceGenerator = () => {
             <div className="space-y-6">
               {customerView === 'list' && (
                 <>
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Přehled odběratelů</h2>
-                    <button
-                      onClick={() => {
-                        setEditingCustomer({
-                          name: '',
-                          address: '',
-                          zip: '',
-                          city: '',
-                          ico: '',
-                          dic: '',
-                          notes: '',
-                        });
-                        setCustomerView('edit');
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      <Plus size={16} /> Nový odběratel
-                    </button>
-                  </div>
-                  <div className="bg-white border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="text-left p-4 font-medium">Název</th>
-                          <th className="text-left p-4 font-medium">IČO</th>
-                          <th className="text-left p-4 font-medium">Město</th>
-                          <th className="text-center p-4 font-medium">Akce</th>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Přehled odběratelů</h2>
+                  <button onClick={() => { setEditingCustomer({ name: '', address: '', zip: '', city: '', ico: '', dic: '', notes:'' }); setCustomerView('edit'); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <Plus size={16} /> Nový odběratel
+                  </button>
+                </div>
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="hidden md:table-header-group bg-gray-50">
+                      <tr>
+                        <th className="text-left p-4 font-medium">Název</th>
+                        <th className="text-left p-4 font-medium">IČO</th>
+                        <th className="text-left p-4 font-medium">Město</th>
+                        <th className="text-center p-4 font-medium">Akce</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {savedCustomers.map((customer) => (
+                        <tr key={customer.id} className="block md:table-row p-4">
+                          <td className="block md:table-cell md:p-4 md:font-medium" data-label="Název: ">{customer.name}</td>
+                          <td className="block md:table-cell md:p-4" data-label="IČO: ">{customer.ico}</td>
+                          <td className="block md:table-cell md:p-4" data-label="Město: ">{customer.city}</td>
+                          <td className="block md:table-cell md:p-4">
+                            <div className="flex gap-2 justify-end md:justify-center mt-2 md:mt-0">
+                              <button onClick={() => selectCustomerAndCreateInvoice(customer)} className="p-1 text-green-600 hover:text-green-800" title="Vytvořit fakturu"><FileText size={16} /></button>
+                              <button onClick={() => editCustomer(customer)} className="p-1 text-gray-600 hover:text-gray-800" title="Upravit"><Edit size={16} /></button>
+                              <button onClick={() => deleteCustomer(customer.id)} className="p-1 text-red-600 hover:text-red-800" title="Smazat"><Trash2 size={16} /></button>
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {savedCustomers.map((customer) => (
-                          <tr
-                            key={customer.id}
-                            className="border-t hover:bg-gray-50"
-                          >
-                            <td className="p-4 font-medium">{customer.name}</td>
-                            <td className="p-4">{customer.ico}</td>
-                            <td className="p-4">{customer.city}</td>
-                            <td className="p-4">
-                              <div className="flex gap-2 justify-center">
-                                <button
-                                  onClick={() =>
-                                    selectCustomerAndCreateInvoice(customer)
-                                  }
-                                  className="p-1 text-green-600 hover:text-green-800"
-                                  title="Vytvořit fakturu"
-                                >
-                                  <FileText size={16} />
-                                </button>
-                                <button
-                                  onClick={() => editCustomer(customer)}
-                                  className="p-1 text-gray-600 hover:text-gray-800"
-                                  title="Upravit"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button
-                                  onClick={() => deleteCustomer(customer.id)}
-                                  className="p-1 text-red-600 hover:text-red-800"
-                                  title="Smazat"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
               )}
               {customerView === 'edit' && editingCustomer && (
                 <div className="space-y-6">
