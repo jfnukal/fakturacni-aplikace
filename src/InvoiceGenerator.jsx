@@ -873,12 +873,12 @@ const CzechInvoiceGenerator = () => {
                           <td className="block md:table-cell md:p-4 md:text-center" data-label="Stav: "><StatusBadge status={invoice.status} /></td>
                           <td className="block md:table-cell md:p-4">
                             <div className="flex gap-2 justify-end md:justify-center mt-2 md:mt-0">
-                              <button onClick={() => handleDownloadPdf(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Stáhnout PDF"><Download size={16} /></button>
-                              <button onClick={() => handleShare(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Sdílet"><Share2 size={16} /></button>
-                              <button onClick={() => cloneInvoice(invoice)} className="p-1 text-purple-600 hover:text-purple-800" title="Klonovat"><Copy size={16} /></button>
-                              <button onClick={() => { setCurrentInvoice(invoice); setCurrentView('preview'); }} className="p-1 text-blue-600 hover:text-blue-800" title="Zobrazit"><Eye size={16} /></button>
-                              <button onClick={() => editInvoice(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Upravit"><Edit size={16} /></button>
-                              <button onClick={() => deleteInvoice(invoice.id)} className="p-1 text-red-600 hover:text-red-800" title="Smazat"><Trash2 size={16} /></button>
+                              <button onClick={() => handleDownloadPdf(invoice)} className="p-2 text-gray-600 hover:text-gray-800 rounded-md" title="Stáhnout PDF"><Download size={20} /></button>
+                              <button onClick={() => handleShare(invoice)} className="p-2 text-gray-600 hover:text-gray-800 rounded-md" title="Sdílet"><Share2 size={20} /></button>
+                              <button onClick={() => cloneInvoice(invoice)} className="p-2 text-purple-600 hover:text-purple-800 rounded-md" title="Klonovat"><Copy size={20} /></button>
+                              <button onClick={() => { setCurrentInvoice(invoice); setCurrentView('preview'); }} className="p-2 text-blue-600 hover:text-blue-800 rounded-md" title="Zobrazit"><Eye size={20} /></button>
+                              <button onClick={() => editInvoice(invoice)} className="p-2 text-gray-600 hover:text-gray-800 rounded-md" title="Upravit"><Edit size={20} /></button>
+                              <button onClick={() => deleteInvoice(invoice.id)} className="p-2 text-red-600 hover:text-red-800 rounded-md" title="Smazat"><Trash2 size={20} /></button>
                             </div>
                           </td>
                         </tr>
