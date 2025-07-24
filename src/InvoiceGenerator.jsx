@@ -2,7 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { db, storage } from './firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Plus, Trash2, Settings, Building, FileText, Copy, Upload, Eye, Edit, Save } from 'lucide-react';
+import { Plus, Trash2, Settings, Building, FileText, Copy, Upload, Eye, Edit, Save, Download, Share2 } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
+import InvoicePrintable from './InvoicePrintable.jsx';
+import ReactDOM from 'react-dom/client';
 
 // Změna 1: Funkce je definována jako 'function', aby byla přístupná dříve (hoisting)
 // a nezávisí na stavu 'invoices'.
@@ -318,6 +321,55 @@ const CzechInvoiceGenerator = () => {
     }
   };
 
+  const handleDownloadPdf = (invoice) => {
+    const element = document.createElement('div');
+    const invoiceComponent = <InvoicePrintable invoice={invoice} supplier={supplier} vatSettings={vatSettings} />;
+  
+    // Dočasně vykreslíme komponentu mimo obrazovku, abychom ji mohli převést na HTML
+    const root = ReactDOM.createRoot(element);
+    root.render(invoiceComponent);
+  
+    const opt = {
+      margin:       10,
+      filename:     `faktura-${invoice.number}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+  
+    setTimeout(() => {
+      html2pdf().from(element).set(opt).save();
+    }, 500);
+  };
+  
+  const handleShare = async (invoice) => {
+    if (!navigator.share || !navigator.canShare) {
+      alert('Sdílení není na tomto zařízení nebo v tomto prohlížeči podporováno. Použijte prosím stažení PDF.');
+      return;
+    }
+  
+    const element = document.createElement('div');
+    const invoiceComponent = <InvoicePrintable invoice={invoice} supplier={supplier} vatSettings={vatSettings} />;
+    const root = ReactDOM.createRoot(element);
+    root.render(invoiceComponent);
+  
+    setTimeout(async () => {
+      try {
+        const blob = await html2pdf().from(element).output('blob');
+        const file = new File([blob], `faktura-${invoice.number}.pdf`, { type: 'application/pdf' });
+  
+        await navigator.share({
+          title: `Faktura ${invoice.number}`,
+          text: `Zde je faktura ${invoice.number}.`,
+          files: [file],
+        });
+      } catch (error) {
+        console.error('Chyba při sdílení: ', error);
+        handleDownloadPdf(invoice); // Jako záloha stáhneme PDF
+      }
+    }, 500);
+  };
+
   // --- Pomocné komponenty pro UI ---
   const TabButton = ({ id, children, icon: Icon }) => (
     <button onClick={() => { setActiveTab(id); if (id === 'invoices') setCurrentView('list'); }} className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${ activeTab === id ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-800' }`} >
@@ -486,6 +538,8 @@ const CzechInvoiceGenerator = () => {
                             <td className="p-4 text-center"><StatusBadge status={invoice.status} /></td>
                             <td className="p-4">
                               <div className="flex gap-2 justify-center">
+                              <button onClick={() => handleDownloadPdf(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Stáhnout PDF"><Download size={16} /></button>
+                              <button onClick={() => handleShare(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Sdílet"><Share2 size={16} /></button>
                                 <button onClick={() => cloneInvoice(invoice)} className="p-1 text-purple-600 hover:text-purple-800" title="Klonovat"><Copy size={16} /></button>
                                 <button onClick={() => { setCurrentInvoice(invoice); setCurrentView('preview'); }} className="p-1 text-blue-600 hover:text-blue-800" title="Zobrazit"><Eye size={16} /></button>
                                 <button onClick={() => editInvoice(invoice)} className="p-1 text-gray-600 hover:text-gray-800" title="Upravit"><Edit size={16} /></button>
@@ -501,12 +555,13 @@ const CzechInvoiceGenerator = () => {
               )}
               {currentView === 'preview' && (
                 <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => setCurrentView('list')} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-                      ← Zpět na přehled
-                    </button>
-                    <h2 className="text-2xl font-bold">Faktura {currentInvoice.number}</h2>
-                  </div>
+                 <div className="flex items-center gap-4">
+                      <button onClick={() => setCurrentView('list')} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">← Zpět na přehled</button>
+                      <h2 className="text-2xl font-bold">Faktura {currentInvoice.number}</h2>
+                      <div className="flex-grow"></div> {/* Odsazení */}
+                      <button onClick={() => handleDownloadPdf(currentInvoice)} className="p-2 text-gray-600 hover:text-gray-800" title="Stáhnout PDF"><Download size={20} /></button>
+                      <button onClick={() => handleShare(currentInvoice)} className="p-2 text-gray-600 hover:text-gray-800" title="Sdílet"><Share2 size={20} /></button>
+                    </div>
                   <InvoicePreview invoice={currentInvoice} />
                 </div>
               )}
