@@ -14,7 +14,10 @@ exports.handler = async function (event, context) {
 
   const { ico } = event.queryStringParameters || {};
   
+  console.log('Received ICO:', ico); // DEBUG
+  
   if (!ico || !/^\d{8}$/.test(ico)) {
+    console.log('Invalid ICO format'); // DEBUG
     return { 
       statusCode: 400, 
       headers: { 
@@ -25,8 +28,8 @@ exports.handler = async function (event, context) {
     };
   }
 
-  // NOVÉ ARES API URL
   const aresUrl = `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`;
+  console.log('Calling ARES URL:', aresUrl); // DEBUG
 
   try {
     const aresResponse = await fetch(aresUrl, {
@@ -35,6 +38,9 @@ exports.handler = async function (event, context) {
         'User-Agent': 'Mozilla/5.0 (compatible; Invoice-Generator/1.0)'
       }
     });
+
+    console.log('ARES Response Status:', aresResponse.status); // DEBUG
+    console.log('ARES Response Headers:', aresResponse.headers.raw()); // DEBUG
 
     if (!aresResponse.ok) {
       console.error(`ARES API Error: ${aresResponse.status}`);
@@ -51,6 +57,7 @@ exports.handler = async function (event, context) {
     }
 
     const data = await aresResponse.json();
+    console.log('ARES Response Data:', JSON.stringify(data, null, 2)); // DEBUG
     
     return {
       statusCode: 200,
