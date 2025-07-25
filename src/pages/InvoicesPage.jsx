@@ -459,9 +459,9 @@ const InvoicesPage = ({
             </tbody>
           </table>
         </div>
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
           <div>{generatePaymentQR(invoice, supplier)}</div>
-          <div className="w-80 space-y-2">
+          <div className="w-full md:w-80 space-y-2">
             <div className="flex justify-between py-1">
               <span>Mezisoučet:</span>
               <span className="font-medium">{subtotal.toFixed(2)} Kč</span>
