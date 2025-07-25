@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   getAuth,
   onAuthStateChanged,
@@ -30,7 +31,7 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(user);
       } else if (user) {
         // Pokud je přihlášen, ale email není v seznamu, odhlásíme ho
-        alert('Tento Google účet nemá oprávnění k přístupu do aplikace.');
+        toast.error('Tento účet nemá oprávnění k přístupu.');
         signOut(auth);
         setCurrentUser(null);
       } else {
