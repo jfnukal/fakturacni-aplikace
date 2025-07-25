@@ -461,21 +461,22 @@ const InvoicesPage = ({
         </div>
         <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
           <div>{generatePaymentQR(invoice, supplier)}</div>
-          <div className="w-full md:w-80 space-y-2">
-            <div className="flex justify-between py-1">
-              <span>Mezisoučet:</span>
-              <span className="font-medium">{subtotal.toFixed(2)} Kč</span>
-            </div>
-            {vatSettings.enabled && (
-              <div className="flex justify-between py-1">
-                <span>DPH {vatSettings.rate}%:</span>
-                <span className="font-medium">{vatAmount.toFixed(2)} Kč</span>
+         <div className="w-full md:w-80 space-y-1">
+              <div className="grid grid-cols-2 gap-4 py-1">
+                <span>Mezisoučet:</span>
+                <span className="text-right font-medium">{subtotal.toFixed(2)} Kč</span>
               </div>
-            )}
-            <div className="border-t pt-2">
-              <div className="flex justify-between text-lg font-bold">
-                <span>Celkem k úhradě:</span>
-                <span>{total.toFixed(2)} Kč</span>
+              {vatSettings.enabled && (
+                <div className="grid grid-cols-2 gap-4 py-1">
+                  <span>DPH {vatSettings.rate}%:</span>
+                  <span className="text-right font-medium">{vatAmount.toFixed(2)} Kč</span>
+                </div>
+              )}
+              <div className="border-t pt-2 mt-2">
+                <div className="grid grid-cols-2 gap-4 text-lg font-bold">
+                  <span>Celkem k úhradě:</span>
+                  <span className="text-right">{total.toFixed(2)} Kč</span>
+                </div>
               </div>
             </div>
           </div>
