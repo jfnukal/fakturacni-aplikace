@@ -461,7 +461,7 @@ const InvoicesPage = ({
         </div>
         <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
           <div>{generatePaymentQR(invoice, supplier)}</div>
-         <div className="w-full md:w-80 space-y-1">
+             <div className="w-full md:w-80 space-y-1">
               <div className="grid grid-cols-2 gap-4 py-1">
                 <span>Mezisoučet:</span>
                 <span className="text-right font-medium">{subtotal.toFixed(2)} Kč</span>
@@ -479,11 +479,11 @@ const InvoicesPage = ({
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
-    );
-  };
+      );
+    };
 
   const modalConfig = {
     title: 'Chybějící číslo faktury',
