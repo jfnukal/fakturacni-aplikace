@@ -21,7 +21,7 @@ const CreationMenu = ({ onRequestNew }) => {
 
   return (
     // ZDE JE KLÍČOVÁ ZMĚNA: Přidali jsme responzivní třídy pro změnu pozice na mobilu
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:bottom-6 sm:translate-x-0 z-40 flex flex-col items-center sm:items-end">
+    <div className="fixed bottom-4 left-1 -translate-x-1 sm:left-auto sm:right-6 sm:bottom-6 sm:translate-x-0 z-40 flex flex-col items-center sm:items-end">
       {/* Menu s položkami, které se zobrazí po kliknutí */}
       <div
         className={`flex flex-col items-end gap-3 transition-all duration-300 ${
