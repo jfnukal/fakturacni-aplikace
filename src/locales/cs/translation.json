@@ -52,6 +52,7 @@
   "common": {
     "save": "Uložit",
     "cancel": "Zrušit",
+    "preview": "Náhled",
     "back_to_list": "Zpět na přehled",
     "download_pdf": "Stáhnout PDF",
     "share": "Sdílet",
