@@ -7,6 +7,7 @@ import InvoicePrintable from '../pages/InvoicePrintable.jsx';
 import ReactDOM from 'react-dom/client';
 import ConfirmModal from '../components/ConfirmModal.jsx';
 import { useTranslation } from 'react-i18next';
+import { generateNextDocumentNumber } from '../../netlify/functions/numbering.js';
 
 function getNewInvoice() {
   return {
@@ -17,7 +18,7 @@ function getNewInvoice() {
   };
 }
 
-const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deliveryNotes }) => {
+const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deliveryNotes, creationRequest, setCreationRequest, selectCustomerForNewInvoice }) => {
   const { t } = useTranslation();
   const [currentView, setCurrentView] = useState('list');
   const [editingInvoice, setEditingInvoice] = useState(null);
@@ -29,6 +30,19 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
+    if (creationRequest === 'invoice') {
+      handleAddNew();
+      setCreationRequest(null);
+    }
+  }, [creationRequest, setCreationRequest]);
+
+  useEffect(() => {
+    if (selectCustomerForNewInvoice) {
+        handleAddNew(selectCustomerForNewInvoice);
+    }
+  }, [selectCustomerForNewInvoice]);
+
+  useEffect(() => {
     if (!currentUser) return;
     const q = query(collection(db, 'invoices'), where("userId", "==", currentUser.uid), orderBy('number', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -37,6 +51,18 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
     });
     return () => unsubscribe();
   }, [currentUser]);
+
+  const handleAddNew = (customer = null) => {
+    const allNumbers = invoices.map(inv => inv.number);
+    const newInv = getNewInvoice();
+    newInv.number = generateNextDocumentNumber(allNumbers);
+    if(customer) {
+        newInv.customer = customer;
+    }
+    setCurrentInvoice(newInv);
+    setEditingInvoice(null);
+    setCurrentView('create');
+  };
 
   const calculateTotals = (invoice, currentVatSettings) => {
     const subtotal = invoice.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
@@ -76,10 +102,10 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
   };
 
   const cloneInvoice = (invoiceToClone) => {
-    const nextInvoiceNumber = invoices.length > 0 ? Math.max(...invoices.map((inv) => parseInt(inv.number.split('-')[1], 10))) + 1 : 1;
+    const allNumbers = invoices.map(inv => inv.number);
     const newInvoice = {
       ...JSON.parse(JSON.stringify(invoiceToClone)),
-      number: `2025-${String(nextInvoiceNumber).padStart(3, '0')}`,
+      number: generateNextDocumentNumber(allNumbers),
       issueDate: new Date().toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       duzpDate: new Date().toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       dueDate: calculateDueDate(new Date().toLocaleDateString('cs-CZ'), invoiceToClone.dueDays || 14),
@@ -147,7 +173,7 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
     const root = ReactDOM.createRoot(element);
     root.render(<InvoicePrintable invoice={invoice} supplier={supplier} vatSettings={vatSettings} />);
     setTimeout(() => {
-      const opt = { margin: 3, filename: `faktura-${invoice.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const opt = { margin: 10, filename: `faktura-${invoice.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
       html2pdf().from(element.firstChild).set(opt).save().then(() => { document.body.removeChild(element); });
     }, 500);
   };
@@ -261,8 +287,10 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
       if (notesToProcess.length === 0) return;
       const firstCustomer = notesToProcess[0].customer;
       if (!notesToProcess.every((note) => note.customer.id === firstCustomer.id)) { alert(t('invoices_page.dl_select.alert.multiple_customers')); return; }
+      const allNumbers = invoices.map(inv => inv.number);
       const newItems = notesToProcess.map((note) => { const { totalWithoutVat } = calculateDlTotal(note.items); return { id: Date.now() + Math.random(), description: `Dodací list č. ${note.number}`, quantity: 1, unit: 'ks', pricePerUnit: totalWithoutVat, totalPrice: totalWithoutVat }; });
       const newInvoice = getNewInvoice();
+      newInvoice.number = generateNextDocumentNumber(allNumbers);
       newInvoice.customer = firstCustomer;
       newInvoice.items = newItems;
       setCurrentInvoice(newInvoice); setEditingInvoice(null); setIsSelectingDL(false); setCurrentView('create');
@@ -290,7 +318,7 @@ const InvoicesPage = ({ currentUser, savedCustomers, supplier, vatSettings, deli
             <h2 className="text-2xl font-bold">{t('invoices_page.title')}</h2>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={() => setIsSelectingDL(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"><Plus size={16} /> <span>{t('invoices_page.create_from_dl')}</span></button>
-              <button onClick={() => { const nextNumber = invoices.length > 0 ? Math.max(...invoices.map(inv => parseInt(inv.number.split('-')[1], 10))) + 1 : 1; const newInv = getNewInvoice(); newInv.number = `2025-${String(nextNumber).padStart(3, '0')}`; setCurrentInvoice(newInv); setEditingInvoice(null); setCurrentView('create'); }} className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"><Plus size={16} /> {t('invoices_page.new')}</button>
+              <button onClick={() => handleAddNew()} className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"><Plus size={16} /> {t('invoices_page.new')}</button>
             </div>
           </div>
           <div className="bg-white border rounded-lg overflow-hidden">
