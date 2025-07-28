@@ -124,7 +124,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
     const root = ReactDOM.createRoot(element);
     root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} />);
     setTimeout(() => {
-      const opt = { margin: 5, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const opt = { margin: 3, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
       html2pdf().from(element.firstChild).set(opt).save().then(() => { document.body.removeChild(element); });
     }, 500);
   };
