@@ -1,3 +1,4 @@
+// Soubor: src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase';
@@ -15,7 +16,7 @@ import CustomersPage from './pages/CustomersPage.jsx';
 import DeliveryNotesPage from './pages/DeliveryNotesPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
-import './index.css';
+import CreationMenu from './components/CreationMenu.jsx';
 import {
   FileText,
   Building,
@@ -37,6 +38,7 @@ const App = () => {
   const [vatSettings, setVatSettings] = useState(null);
   const [products, setProducts] = useState([]);
   const [deliveryNotes, setDeliveryNotes] = useState([]);
+  const [creationRequest, setCreationRequest] = useState(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -56,9 +58,6 @@ const App = () => {
         const data = doc.data();
         if (data.supplierDetails) setSupplier(data.supplierDetails);
         if (data.vatDetails) setVatSettings(data.vatDetails);
-      } else {
-        setSupplier({});
-        setVatSettings({});
       }
     });
 
@@ -101,77 +100,105 @@ const App = () => {
     </button>
   );
 
+  const handleRequestNew = (itemType) => {
+    const tabMap = {
+      invoice: 'invoices',
+      delivery_note: 'delivery_notes',
+      customer: 'customers',
+      product: 'products',
+    };
+    setActiveTab(tabMap[itemType]);
+    setCreationRequest(itemType);
+  };
+
   if (!currentUser) {
     return <LoginPage />;
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen">
+    // ZDE JE KLÍČOVÁ ZMĚNA: Přidali jsme třídu 'relative'
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen relative">
       <Toaster position="top-center" />
       <div className="flex justify-between items-center mb-4">
-        <div className="text-sm">{t('loggedInAs')} <strong>{currentUser.email}</strong></div>
+        <div className="text-sm">
+          {t('loggedInAs')} <strong>{currentUser.email}</strong>
+        </div>
         <div className="flex items-center gap-4">
-        <LanguageSwitcher />
-          <button onClick={logout} className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded text-sm">
-            <LogOut size={14} /> <span className="hidden sm:inline">{t('logout')}</span>
+          <LanguageSwitcher />
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            <LogOut size={14} />{' '}
+            <span className="hidden sm:inline">{t('logout')}</span>
           </button>
         </div>
       </div>
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="flex border-b bg-gray-50 overflow-x-auto">
-            <TabButton id="invoices" icon={FileText}>
-              {t('invoices')}
-            </TabButton>
-            <TabButton id="delivery_notes" icon={ListOrdered}>
-              {t('delivery_notes')}
-            </TabButton>
-            <TabButton id="customers" icon={Building}>
-              {t('customers')}
-            </TabButton>
-            <TabButton id="products" icon={Tag}>
-              {t('products')}
-            </TabButton>
-            <TabButton id="settings" icon={Settings}>
-              {t('settings')}
-            </TabButton>
-          </div>
-          <div className="p-3 md:p-6">
-            {activeTab === 'invoices' && (
-              <InvoicesPage
-                currentUser={currentUser}
-                savedCustomers={savedCustomers}
-                supplier={supplier}
-                vatSettings={vatSettings}
-                deliveryNotes={deliveryNotes}
-              />
-            )}
-            {activeTab === 'delivery_notes' && (
-              <DeliveryNotesPage
-                currentUser={currentUser}
-                supplier={supplier}
-                savedCustomers={savedCustomers}
-                products={products}
-                vatSettings={vatSettings}
-              />
-            )}
-            {activeTab === 'customers' && (
-              <CustomersPage
-                savedCustomers={savedCustomers}
-                setActiveTab={setActiveTab}
-              />
-            )}
-            {activeTab === 'products' && (
-              <ProductsPage
-                vatSettings={vatSettings}
-                products={products}
-                setProducts={setProducts}
-              />
-            )}
-            {activeTab === 'settings' && <SettingsPage />}
-          </div>
+
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="flex border-b bg-gray-50 overflow-x-auto">
+          <TabButton id="invoices" icon={FileText}>
+            {t('invoices')}
+          </TabButton>
+          <TabButton id="delivery_notes" icon={ListOrdered}>
+            {t('delivery_notes')}
+          </TabButton>
+          <TabButton id="customers" icon={Building}>
+            {t('customers')}
+          </TabButton>
+          <TabButton id="products" icon={Tag}>
+            {t('products')}
+          </TabButton>
+          <TabButton id="settings" icon={Settings}>
+            {t('settings')}
+          </TabButton>
+        </div>
+        <div className="p-3 md:p-6">
+          {activeTab === 'invoices' && (
+            <InvoicesPage
+              creationRequest={creationRequest}
+              setCreationRequest={setCreationRequest}
+              currentUser={currentUser}
+              savedCustomers={savedCustomers}
+              supplier={supplier}
+              vatSettings={vatSettings}
+              deliveryNotes={deliveryNotes}
+            />
+          )}
+          {activeTab === 'delivery_notes' && (
+            <DeliveryNotesPage
+              creationRequest={creationRequest}
+              setCreationRequest={setCreationRequest}
+              currentUser={currentUser}
+              supplier={supplier}
+              savedCustomers={savedCustomers}
+              products={products}
+              vatSettings={vatSettings}
+            />
+          )}
+          {activeTab === 'customers' && (
+            <CustomersPage
+              creationRequest={creationRequest}
+              setCreationRequest={setCreationRequest}
+              savedCustomers={savedCustomers}
+              setActiveTab={setActiveTab}
+            />
+          )}
+          {activeTab === 'products' && (
+            <ProductsPage
+              creationRequest={creationRequest}
+              setCreationRequest={setCreationRequest}
+              vatSettings={vatSettings}
+              products={products}
+            />
+          )}
+          {activeTab === 'settings' && <SettingsPage />}
         </div>
       </div>
 
+      <CreationMenu onRequestNew={handleRequestNew} />
+    </div>
   );
 };
+
 export default App;
