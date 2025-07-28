@@ -9,11 +9,47 @@ import DeliveryNotePrintable from '../components/DeliveryNotePrintable.jsx';
 import ConfirmModal from '../components/ConfirmModal.jsx';
 import { useTranslation } from 'react-i18next';
 
+// --- CHYTRÁ FUNKCE PRO ČÍSLOVÁNÍ DOKUMENTŮ ---
+const generateNextDocumentNumber = (existingNumbers) => {
+  const year = new Date().getFullYear();
+  if (!existingNumbers || existingNumbers.length === 0) {
+    return `${year}-001`; // Výchozí číslo, pokud žádné neexistuje
+  }
+
+  let maxNum = 0;
+  let template = { prefix: `${year}-`, numStr: '001' }; 
+
+  existingNumbers.forEach(numStr => {
+    const match = numStr.match(/^(.*?)(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const numPart = match[2];
+      const currentNum = parseInt(numPart, 10);
+
+      if (currentNum >= maxNum) {
+        maxNum = currentNum;
+        template = { prefix, numStr: numPart };
+      }
+    }
+  });
+
+  const nextNum = maxNum + 1;
+  const padding = template.numStr.length;
+
+  return `${template.prefix}${String(nextNum).padStart(padding, '0')}`;
+};
+// ----------------------------------------------------
+
 const formatDateForDisplay = (date) => {
-  return new Date(date).toLocaleDateString('cs-CZ');
+  if (!date) return '';
+  try {
+    return new Date(date).toLocaleDateString('cs-CZ');
+  } catch (e) {
+    return date;
+  }
 };
 
-const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) => {
+const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, creationRequest, setCreationRequest }) => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const [deliveryNotes, setDeliveryNotes] = useState([]);
@@ -24,10 +60,18 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
+    if (creationRequest === 'delivery_note') {
+      handleAddNew();
+      setCreationRequest(null);
+    }
+  }, [creationRequest]);
+
+  useEffect(() => {
     if (!currentUser) return;
     const q = query(collection(db, 'deliveryNotes'), where("userId", "==", currentUser.uid), orderBy('number', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      setDeliveryNotes(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const notes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDeliveryNotes(notes);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -40,14 +84,17 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
     return { totalWithoutVat, totalWithVat };
   };
 
-  const getNewDeliveryNote = () => ({
-    number: `DL2025-${String(deliveryNotes.length + 1).padStart(3, '0')}`,
-    date: new Date().toISOString().split('T')[0],
-    customer: null,
-    items: products.map(p => ({ productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 })),
-    userId: currentUser.uid,
-    showPrices: false,
-  });
+  const getNewDeliveryNote = () => {
+    const allNumbers = deliveryNotes.map(note => note.number);
+    return {
+      number: generateNextDocumentNumber(allNumbers),
+      date: new Date().toISOString().split('T')[0],
+      customer: null,
+      items: products.map(p => ({ productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 })),
+      userId: currentUser.uid,
+      showPrices: false,
+    };
+  };
 
   const handleAddNew = () => {
     setCurrentDeliveryNote(getNewDeliveryNote());
@@ -60,7 +107,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
       ...note,
       items: products.map(p => {
         const existingItem = note.items.find(ni => ni.productId === p.id);
-        return existingItem ? existingItem : { productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 };
+        return existingItem ? { ...existingItem } : { productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 };
       })
     });
     setEditingNote(note);
@@ -107,9 +154,10 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
   };
   
   const handleClone = (noteToClone) => {
+    const allNumbers = deliveryNotes.map(note => note.number);
     const newNote = {
       ...JSON.parse(JSON.stringify(noteToClone)),
-      number: `DL2025-${String(deliveryNotes.length + 1).padStart(3, '0')}`,
+      number: generateNextDocumentNumber(allNumbers),
       date: new Date().toISOString().split('T')[0],
     };
     delete newNote.id;
@@ -124,7 +172,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
     const root = ReactDOM.createRoot(element);
     root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} />);
     setTimeout(() => {
-      const opt = { margin: 3, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const opt = { margin: 10, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
       html2pdf().from(element.firstChild).set(opt).save().then(() => { document.body.removeChild(element); });
     }, 500);
   };
@@ -183,9 +231,6 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
         <>
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('delivery_notes_page.title')}</h2>
-            <button onClick={handleAddNew} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              <Plus size={16} /> {t('delivery_notes_page.new')}
-            </button>
           </div>
           <div className="bg-white border rounded-lg overflow-hidden">
             <table className="w-full">
@@ -287,6 +332,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings }) 
             </div>
              <div className="flex gap-4">
                 <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"><Save size={16}/>{editingNote ? t('common.save_changes') : t('delivery_notes_page.save')}</button>
+                <button onClick={() => setCurrentView('list')} className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">{t('common.cancel')}</button>
              </div>
         </div>
       )}
