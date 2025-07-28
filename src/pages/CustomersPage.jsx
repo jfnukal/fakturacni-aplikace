@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+// Soubor: src/pages/CustomersPage.jsx
+import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { addDoc, doc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
 import { Plus, FileText, Edit, Trash2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const CustomersPage = ({ savedCustomers, setActiveTab, selectCustomerForNewInvoice }) => {
-  const { t } = useTranslation();
+const CustomersPage = ({ savedCustomers, setActiveTab, creationRequest, setCreationRequest, selectCustomerForNewInvoice }) => {
+  // ZDE JE KLÍČOVÁ KONTROLA: Musí zde být { t }, aby se z objektu vytáhla překladová funkce.
+  const { t } = useTranslation(); 
   const { currentUser } = useAuth();
   const [customerView, setCustomerView] = useState('list');
   const [editingCustomer, setEditingCustomer] = useState(null);
+
+  useEffect(() => {
+    if (creationRequest === 'customer') {
+      setEditingCustomer({ name: '', address: '', zip: '', city: '', ico: '', dic: '', notes: '' });
+      setCustomerView('edit');
+      setCreationRequest(null);
+    }
+  }, [creationRequest, setCreationRequest]);
 
   const fetchFromAres = async (ico) => {
     if (!ico || !/^\d{8}$/.test(ico)) {
@@ -19,19 +29,25 @@ const CustomersPage = ({ savedCustomers, setActiveTab, selectCustomerForNewInvoi
     const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
     try {
       const response = await fetch(proxiedUrl);
-      if (!response.ok) throw new Error(t('customers_page.alert.ares_error'));
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert(t('customers_page.alert.company_not_found'));
+        } else {
+          throw new Error(t('customers_page.alert.ares_error'));
+        }
+        return;
+      }
       const data = await response.json();
-        const subject = data; 
-      
+      const subject = data;
       if (!subject || !subject.obchodniJmeno) {
         alert(t('customers_page.alert.company_not_found'));
         return;
       }
       const aresData = {
         name: subject.obchodniJmeno,
-        address: `${subject.sidlo.ulice || ''} ${subject.sidlo.cisloOrientacni || ''}`.trim(),
-        zip: subject.sidlo.psc,
-        city: subject.sidlo.nazevObce,
+        address: `${subject.sidlo?.ulice || ''} ${subject.sidlo?.cisloOrientacni || ''}`.trim(),
+        zip: subject.sidlo?.psc || '',
+        city: subject.sidlo?.nazevObce || '',
         ico: subject.ico,
         dic: subject.dic || '',
       };
@@ -73,7 +89,9 @@ const CustomersPage = ({ savedCustomers, setActiveTab, selectCustomerForNewInvoi
   };
 
   const handleCreateInvoice = (customer) => {
-    selectCustomerForNewInvoice(customer);
+    if (selectCustomerForNewInvoice) {
+      selectCustomerForNewInvoice(customer);
+    }
     setActiveTab('invoices');
   };
 
@@ -83,15 +101,6 @@ const CustomersPage = ({ savedCustomers, setActiveTab, selectCustomerForNewInvoi
         <>
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('customers_page.title')}</h2>
-            <button
-              onClick={() => {
-                setEditingCustomer({ name: '', address: '', zip: '', city: '', ico: '', dic: '', notes: '' });
-                setCustomerView('edit');
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              <Plus size={16} /> {t('customers_page.new')}
-            </button>
           </div>
           <div className="bg-white border rounded-lg overflow-hidden">
             <table className="w-full">
