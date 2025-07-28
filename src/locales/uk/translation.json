@@ -1,0 +1,226 @@
+{
+  "invoices": "Рахунки-фактури",
+  "delivery_notes": "Накладні",
+  "customers": "Клієнти",
+  "products": "Продукти",
+  "settings": "Налаштування",
+  "logout": "Вийти",
+  "loggedInAs": "Ви увійшли як:",
+  "settingsTitle": "Налаштування",
+  "companyLogo": "Логотип компанії",
+  "uploadLogo": "Завантажити логотип",
+  "remove": "Видалити",
+  "maxFileSize": "Макс. 2 МБ",
+  "vatSettings": "Налаштування ПДВ",
+  "vatPayer": "Я платник ПДВ",
+  "vatRate": "Ставка ПДВ (%)",
+  "supplierDetails": "Дані постачальника",
+  "saveSettings": "Зберегти налаштування",
+  "placeholder_companyName": "Назва/Ім'я",
+  "placeholder_address": "Адреса",
+  "placeholder_zip": "Поштовий індекс",
+  "placeholder_city": "Місто",
+  "placeholder_ico": "Ідентифікаційний номер",
+  "placeholder_dic": "Податковий номер",
+  "placeholder_bankAccount": "Банківський рахунок",
+  "invoice_title": "Рахунок-фактура",
+  "invoice_number": "Номер",
+  "supplier": "ПОСТАЧАЛЬНИК",
+  "customer": "КЛІЄНТ",
+  "ico": "Ідентифікаційний номер",
+  "dic": "Податковий номер",
+  "notVatPayer": "Неплатник ПДВ",
+  "bankAccount": "Банківський рахунок",
+  "variableSymbol": "Специфічний символ",
+  "paymentMethod": "Спосіб оплати",
+  "issueDate": "Дата виставлення",
+  "taxableDate": "Дата оподатковуваної операції",
+  "dueDate": "Термін придатності",
+  "th_description": "Опис",
+  "th_quantity": "Кількість",
+  "th_unit": "Одиниця",
+  "th_pricePerUnit": "Ціна за одиницю",
+  "th_total": "Всього",
+  "currency_czk": "Kč",
+  "subtotal": "Проміжний підсумок",
+  "vat_rate_display": "ПДВ {{rate}}%",
+  "totalToPay": "Всього до сплати",
+  "qrPayment": "QR-платіж",
+  "deliveryNote_title": "Накладна",
+  "deliveryNote_number": "Номер",
+  "th_total_without_vat": "Всього без ПДВ",
+  "common": {
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "back_to_list": "Назад до списку",
+    "download_pdf": "Завантажити PDF",
+    "share": "Поділитися",
+    "clone": "Клонувати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "view": "Переглянути",
+    "save_changes": "Зберегти зміни",
+    "save_anyway": "Все одно зберегти",
+    "back": "Назад"
+  },
+  "customers_page": {
+    "title": "Список клієнтів",
+    "new": "Новий клієнт",
+    "edit_title": "Редагувати клієнта",
+    "new_title": "Новий клієнт",
+    "table": {
+      "name": "Назва",
+      "ico": "Ідентифікаційний номер",
+      "city": "Місто",
+      "actions": "Дії"
+    },
+    "action": {
+      "create_invoice": "Створити рахунок"
+    },
+    "form": {
+      "company_name": "Назва компанії",
+      "address": "Адреса",
+      "zip": "Поштовий індекс",
+      "city": "Місто",
+      "ico": "Ідентифікаційний номер",
+      "ares": "ARES",
+      "dic": "Податковий номер",
+      "notes": "Примітки..."
+    },
+    "alert": {
+      "invalid_ico": "Введіть дійсний восьмизначний Ідентифікаційний номер.",
+      "ares_error": "Помилка зв'язку з ARES.",
+      "company_not_found": "Компанію з таким Ідентифікаційним номером не знайдено.",
+      "ares_fetch_failed": "Не вдалося завантажити дані з ARES.",
+      "name_required": "Ім'я клієнта є обов'язковим.",
+      "confirm_delete": "Ви впевнені, що хочете видалити цього клієнта?"
+    }
+  },
+  "products_page": {
+    "title": "Управління продуктами та прайс-лист",
+    "add_item": "Додати позицію",
+    "table": {
+      "name": "Назва",
+      "unit": "Одиниця",
+      "price_without_vat": "Ціна без ПДВ",
+      "price_with_vat": "Ціна з ПДВ",
+      "actions": "Дії"
+    },
+    "form": {
+      "product_name": "Назва продукту",
+      "unit": "Одиниця",
+      "price_without_vat": "Ціна без ПДВ"
+    },
+    "alert": {
+      "name_required": "Назва продукту є обов'язковою.",
+      "confirm_delete": "Ви впевнені, що хочете видалити цей продукт?",
+      "move_wip": "Функція зміни порядку буде реалізована пізніше."
+    }
+  },
+  "delivery_notes_page": {
+    "title": "Список накладних",
+    "new": "Нова накладна",
+    "edit_title": "Редагувати накладну",
+    "new_title": "Нова накладна",
+    "save": "Зберегти накладну",
+    "loading": "Завантаження накладних...",
+    "table": {
+      "number": "Номер",
+      "customer": "Клієнт",
+      "issue_date": "Дата видачі",
+      "amount": "Сума",
+      "with_vat": "(з ПДВ: {{amount}} Kč)"
+    },
+    "form": {
+      "number": "Номер накладної:",
+      "issue_date": "Дата видачі:",
+      "customer": "Клієнт",
+      "select_customer": "Вибрати клієнта...",
+      "items": "Позиції",
+      "item_name": "Назва",
+      "item_price": "Ціна без ПДВ/шт",
+      "item_quantity": "Кількість",
+      "show_prices": "Показувати ціни в PDF",
+      "total_without_vat": "Всього без ПДВ:",
+      "total_with_vat": "Всього з ПДВ:"
+    },
+    "alert": {
+      "customer_required": "Будь ласка, виберіть клієнта перед збереженням.",
+      "save_error": "Помилка при збереженні накладної:",
+      "generic_save_error": "Сталася помилка під час збереження.",
+      "confirm_delete": "Ви впевнені, що хочете видалити цю накладну?",
+      "share_not_supported": "На цьому пристрої обмін не підтримується.",
+      "share_error": "Помилка під час обміну:"
+    },
+    "modal": {
+      "missing_number_title": "Відсутній номер накладної",
+      "missing_number_message": "Номер накладної не заповнено. Ви можете додати його тут або зберегти накладну без нього.",
+      "number_label": "Номер накладної",
+      "confirm_save": "Додати та зберегти"
+    }
+  },
+  "invoices_page": {
+    "title": "Список рахунків-фактур",
+    "create_from_dl": "Створити з накладної",
+    "new": "Новий рахунок",
+    "loading": "Завантаження рахунків...",
+    "table": {
+      "number": "Номер",
+      "customer": "Клієнт",
+      "issued": "Видано",
+      "amount": "Сума",
+      "status": "Статус",
+      "actions": "Дії"
+    },
+    "status": {
+      "draft": "Чернетка",
+      "pending": "Очікує оплати",
+      "paid": "Оплачено",
+      "overdue": "Прострочено"
+    },
+    "dl_select": {
+      "title": "Вибрати накладні для виставлення рахунку",
+      "alert": {
+        "no_selection": "Будь ласка, виберіть хоча б одну накладну.",
+        "multiple_customers": "Неможливо створити рахунок з накладних для різних клієнтів."
+      },
+      "create_from_selected": "Створити рахунок з вибраних"
+    },
+    "edit_title": "Редагувати рахунок {{number}}",
+    "new_title": "Новий рахунок",
+    "create": "Створити рахунок",
+    "form": {
+      "number": "Номер рахунку",
+      "issue_date": "Дата видачі",
+      "taxable_date": "Дата оподаткування",
+      "due_days": "Термін оплати (дні)",
+      "customer": "Клієнт",
+      "select_saved": "Вибрати збереженого",
+      "customer_name": "Назва",
+      "customer_address": "Адреса",
+      "customer_zip": "Поштовий індекс",
+      "customer_city": "Місто",
+      "customer_ico": "Ідентифікаційний номер",
+      "customer_dic": "Податковий номер",
+      "items": "Позиції",
+      "item_description": "Опис",
+      "item_quantity": "Кількість",
+      "item_unit": "Одиниця",
+      "item_price": "Ціна",
+      "add_item": "Додати позицію",
+      "preview_title": "Попередній перегляд рахунку"
+    },
+    "alert": {
+      "confirm_delete": "Ви впевнені, що хочете видалити цей рахунок?"
+    },
+    "modal": {
+      "missing_number_title": "Відсутній номер рахунку",
+      "missing_number_message": "Номер рахунку не заповнено. Ви можете додати його тут або зберегти рахунок без нього.",
+      "number_label": "Номер рахунку",
+      "confirm_save": "Додати та зберегти"
+    },
+    "preview": {
+      "loading": "Завантаження даних для попереднього перегляду..."
+    }
+  }
+}
