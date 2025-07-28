@@ -1,4 +1,3 @@
-// Soubor: src/components/DeliveryNotePrintable.jsx
 import React from 'react';
 
 const DeliveryNotePrintable = React.forwardRef(({ note, supplier, showPrices }, ref) => {
