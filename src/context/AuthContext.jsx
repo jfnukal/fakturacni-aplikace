@@ -6,13 +6,15 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
+  createUserWithEmailAndPassword, // <-- Nový import
+  signInWithEmailAndPassword, // <-- Nový import
 } from 'firebase/auth';
 
 // ZDE SI DEFINUJ EMAILY, KTERÉ MAJÍ PŘÍSTUP
 const ALLOWED_EMAILS = [
   'jarek.fuki@gmail.com', // Nahraď svým emailem
   'misaelka@gmail.com', // Nahraď emailem manželky
-  'email.bratra@email.com', // Případně další
+  'david.fnukal@seznam.cz', // Případně další
 ];
 
 const AuthContext = createContext();
@@ -47,11 +49,28 @@ export const AuthProvider = ({ children }) => {
     return signInWithPopup(auth, new GoogleAuthProvider());
   };
 
+  // --- Nová funkce pro přihlášení emailem ---
+  const loginWithEmail = (email, password) => {
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  // --- Nová funkce pro registraci emailem ---
+  const signup = (email, password) => {
+    // Klíčová kontrola: Povolíme registraci jen pro emaily z našeho seznamu
+    if (!ALLOWED_EMAILS.includes(email)) {
+      // Místo vytvoření účtu rovnou vrátíme chybu
+      return Promise.reject(
+        new Error('Tento email nemá oprávnění k registraci.')
+      );
+    }
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
+
   const logout = () => {
     return signOut(auth);
   };
 
-  const value = { currentUser, login, logout };
+  const value = { currentUser, login, logout, signup, loginWithEmail };
 
   return (
     <AuthContext.Provider value={value}>
