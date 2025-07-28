@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const InvoicePrintable = React.forwardRef(
   ({ invoice, supplier, vatSettings }, ref) => {
+    const { t } = useTranslation();
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+
+    // --- ZDE JE KLÍČOVÁ OPRAVA ---
+    // Pokud chybí klíčová data, komponenta nic nevykreslí a zabrání pádu aplikace.
+    if (!invoice || !supplier || !vatSettings) {
+      return null;
+    }
 
     const calculateTotals = () => {
       const subtotal = invoice.items.reduce(
         (sum, item) => sum + (item.totalPrice || 0),
         0
       );
+      // Nyní je jisté, že vatSettings není null
       const vatAmount = vatSettings.enabled
         ? (subtotal * vatSettings.rate) / 100
         : 0;
@@ -19,7 +28,6 @@ const InvoicePrintable = React.forwardRef(
     const { subtotal, vatAmount, total } = calculateTotals();
 
     useEffect(() => {
-      // Tato funkce stáhne QR kód a převede ho na data URL (Base64)
       const generateQrCodeAsDataUrl = async () => {
         const amount = total.toFixed(2);
         const vs = invoice.number.replace(/\D/g, '');
@@ -54,17 +62,19 @@ const InvoicePrintable = React.forwardRef(
       generateQrCodeAsDataUrl();
     }, [invoice, supplier, total]);
 
+    const translateInCzech = (key, options = {}) => t(key, { ...options, lng: 'cs' });
+
     return (
       <div
         ref={ref}
         className="p-8 bg-white text-black"
         style={{ width: '210mm', fontFamily: 'sans-serif', fontSize: '10pt' }}
       >
+        {/* Zbytek kódu zůstává stejný jako v minulé funkční verzi */}
         <div className="flex justify-between items-start mb-10">
           <div className="flex items-center gap-4">
             {supplier.logoUrl && (
               <div className="w-24 h-24 flex items-center justify-center">
-                {/* crossOrigin="anonymous" je klíčový pro načtení loga z Firebase do PDF */}
                 <img
                   src={supplier.logoUrl}
                   alt="Logo"
@@ -74,43 +84,35 @@ const InvoicePrintable = React.forwardRef(
               </div>
             )}
             <div>
-              <h1 className="text-3xl font-bold">Faktura</h1>
-              <div className="text-lg">Číslo: {invoice.number}</div>
+              <h1 className="text-3xl font-bold">{translateInCzech('invoice_title')}</h1>
+              <div className="text-lg">{translateInCzech('invoice_number')}: {invoice.number}</div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div>
-            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">
-              DODAVATEL
-            </h3>
+            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">{translateInCzech('supplier')}</h3>
             <div className="space-y-1">
               <div className="font-semibold">{supplier.name}</div>
               <div>{supplier.address}</div>
-              <div>
-                {supplier.zip} {supplier.city}
-              </div>
+              <div>{supplier.zip} {supplier.city}</div>
               <div className="mt-2 space-y-1">
-                <div>IČO: {supplier.ico}</div>
-                {supplier.dic && <div>DIČ: {supplier.dic}</div>}
-                {vatSettings && !vatSettings.enabled && <div>Neplátce DPH</div>}
+                <div>{translateInCzech('ico')}: {supplier.ico}</div>
+                {supplier.dic && <div>{translateInCzech('dic')}: {supplier.dic}</div>}
+                {vatSettings && !vatSettings.enabled && <div>{translateInCzech('notVatPayer')}</div>}
               </div>
             </div>
           </div>
           <div>
-            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">
-              ODBĚRATEL
-            </h3>
+            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">{translateInCzech('customer')}</h3>
             <div className="space-y-1">
               <div className="font-semibold">{invoice.customer.name}</div>
               <div>{invoice.customer.address}</div>
-              <div>
-                {invoice.customer.zip} {invoice.customer.city}
-              </div>
+              <div>{invoice.customer.zip} {invoice.customer.city}</div>
               <div className="mt-2 space-y-1">
-                <div>IČO: {invoice.customer.ico}</div>
-                {invoice.customer.dic && <div>DIČ: {invoice.customer.dic}</div>}
+                <div>{translateInCzech('ico')}: {invoice.customer.ico}</div>
+                {invoice.customer.dic && <div>{translateInCzech('dic')}: {invoice.customer.dic}</div>}
               </div>
             </div>
           </div>
@@ -118,43 +120,25 @@ const InvoicePrintable = React.forwardRef(
 
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div className="space-y-1">
-            <div>
-              <span className="font-semibold">Bankovní účet:</span>{' '}
-              {supplier.bankAccount}
-            </div>
-            <div>
-              <span className="font-semibold">Variabilní symbol:</span>{' '}
-              {invoice.number.replace(/-/g, '')}
-            </div>
-            <div>
-              <span className="font-semibold">Způsob platby:</span>{' '}
-              {supplier.paymentMethod}
-            </div>
+            <div><span className="font-semibold">{translateInCzech('bankAccount')}:</span> {supplier.bankAccount}</div>
+            <div><span className="font-semibold">{translateInCzech('variableSymbol')}:</span> {invoice.number.replace(/-/g, '')}</div>
+            <div><span className="font-semibold">{translateInCzech('paymentMethod')}:</span> {supplier.paymentMethod}</div>
           </div>
           <div className="space-y-1">
-            <div>
-              <span className="font-semibold">Datum vystavení:</span>{' '}
-              {invoice.issueDate}
-            </div>
-            <div>
-              <span className="font-semibold">Datum zdan. plnění:</span>{' '}
-              {invoice.duzpDate}
-            </div>
-            <div>
-              <span className="font-semibold">Datum splatnosti:</span>{' '}
-              {invoice.dueDate}
-            </div>
+            <div><span className="font-semibold">{translateInCzech('issueDate')}:</span> {invoice.issueDate}</div>
+            <div><span className="font-semibold">{translateInCzech('taxableDate')}:</span> {invoice.duzpDate}</div>
+            <div><span className="font-semibold">{translateInCzech('dueDate')}:</span> {invoice.dueDate}</div>
           </div>
         </div>
 
         <table className="w-full mb-10">
           <thead className="bg-gray-100">
             <tr>
-              <th className="text-left p-2 font-semibold w-1/2">Popis</th>
-              <th className="text-center p-2 font-semibold">Počet</th>
-              <th className="text-center p-2 font-semibold">MJ</th>
-              <th className="text-right p-2 font-semibold">Cena za MJ</th>
-              <th className="text-right p-2 font-semibold">Celkem</th>
+              <th className="text-left p-2 font-semibold w-1/2">{translateInCzech('th_description')}</th>
+              <th className="text-center p-2 font-semibold">{translateInCzech('th_quantity')}</th>
+              <th className="text-center p-2 font-semibold">{translateInCzech('th_unit')}</th>
+              <th className="text-right p-2 font-semibold">{translateInCzech('th_pricePerUnit')}</th>
+              <th className="text-right p-2 font-semibold">{translateInCzech('th_total')}</th>
             </tr>
           </thead>
           <tbody>
@@ -163,12 +147,8 @@ const InvoicePrintable = React.forwardRef(
                 <td className="p-2 align-top">{item.description}</td>
                 <td className="p-2 text-center align-top">{item.quantity}</td>
                 <td className="p-2 text-center align-top">{item.unit}</td>
-                <td className="p-2 text-right align-top">
-                  {Number(item.pricePerUnit).toFixed(2)} Kč
-                </td>
-                <td className="p-2 text-right align-top">
-                  {Number(item.totalPrice).toFixed(2)} Kč
-                </td>
+                <td className="p-2 text-right align-top">{Number(item.pricePerUnit).toFixed(2)} {translateInCzech('currency_czk')}</td>
+                <td className="p-2 text-right align-top">{Number(item.totalPrice).toFixed(2)} {translateInCzech('currency_czk')}</td>
               </tr>
             ))}
           </tbody>
@@ -179,33 +159,27 @@ const InvoicePrintable = React.forwardRef(
             {qrCodeDataUrl ? (
               <>
                 <div className="w-24 h-24 border border-gray-300 bg-white p-1">
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="QR platba"
-                    className="w-full h-full object-contain"
-                  />
+                  <img src={qrCodeDataUrl} alt="QR platba" className="w-full h-full object-contain" />
                 </div>
-                <div className="text-xs text-gray-600 mt-1">QR Platba</div>
+                <div className="text-xs text-gray-600 mt-1">{translateInCzech('qrPayment')}</div>
               </>
-            ) : (
-              <div className="w-24 h-24 text-xs flex items-center justify-center bg-gray-50"></div>
-            )}
+            ) : (<div className="w-24 h-24 text-xs flex items-center justify-center bg-gray-50"></div>)}
           </div>
           <div className="w-64 space-y-2">
             <div className="flex justify-between">
-              <span>Mezisoučet:</span>
-              <span>{subtotal.toFixed(2)} Kč</span>
+              <span>{translateInCzech('subtotal')}:</span>
+              <span>{subtotal.toFixed(2)} {translateInCzech('currency_czk')}</span>
             </div>
             {vatSettings.enabled && (
               <div className="flex justify-between">
-                <span>DPH {vatSettings.rate}%:</span>
-                <span>{vatAmount.toFixed(2)} Kč</span>
+                <span>{translateInCzech('vat_rate_display', { rate: vatSettings.rate })}:</span>
+                <span>{vatAmount.toFixed(2)} {translateInCzech('currency_czk')}</span>
               </div>
             )}
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between font-bold text-lg">
-                <span>Celkem k úhradě:</span>
-                <span>{total.toFixed(2)} Kč</span>
+                <span>{translateInCzech('totalToPay')}:</span>
+                <span>{total.toFixed(2)} {translateInCzech('currency_czk')}</span>
               </div>
             </div>
           </div>
