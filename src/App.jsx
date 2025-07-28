@@ -39,74 +39,53 @@ const App = () => {
   const [products, setProducts] = useState([]);
   const [deliveryNotes, setDeliveryNotes] = useState([]);
   const [creationRequest, setCreationRequest] = useState(null);
+  const [appLoading, setAppLoading] = useState(true); // Přidán stav pro načítání klíčových dat
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    const qCustomers = query(
-      collection(db, 'customers'),
-      where('userId', '==', currentUser.uid),
-      orderBy('name')
-    );
-    const unsubCustomers = onSnapshot(qCustomers, (snap) =>
-      setSavedCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
+    if (!currentUser) {
+      setAppLoading(false); // Pokud není uživatel, nenačítáme nic
+      return;
+    };
 
     const settingsDocRef = doc(db, 'settings', currentUser.uid);
     const unsubSettings = onSnapshot(settingsDocRef, (doc) => {
       if (doc.exists()) {
         const data = doc.data();
-        if (data.supplierDetails) setSupplier(data.supplierDetails);
-        if (data.vatDetails) setVatSettings(data.vatDetails);
+        setSupplier(data.supplierDetails || {}); // Zajistíme, že to nikdy není null
+        setVatSettings(data.vatDetails || { enabled: false, rate: 21 }); // Výchozí hodnota
+      } else {
+        // Pokud nastavení neexistuje, nastavíme výchozí hodnoty
+        setSupplier({});
+        setVatSettings({ enabled: false, rate: 21 });
       }
+      setAppLoading(false); // Ukončíme načítání, až když máme nastavení
     });
 
-    const qProducts = query(
-      collection(db, 'products'),
-      where('userId', '==', currentUser.uid),
-      orderBy('position')
-    );
-    const unsubProducts = onSnapshot(qProducts, (snap) =>
-      setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
+    const qCustomers = query(collection(db, 'customers'), where('userId', '==', currentUser.uid), orderBy('name'));
+    const unsubCustomers = onSnapshot(qCustomers, (snap) => setSavedCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    
+    const qProducts = query(collection(db, 'products'), where('userId', '==', currentUser.uid), orderBy('position'));
+    const unsubProducts = onSnapshot(qProducts, (snap) => setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
 
-    const qDeliveryNotes = query(
-      collection(db, 'deliveryNotes'),
-      where('userId', '==', currentUser.uid),
-      orderBy('number', 'desc')
-    );
-    const unsubDeliveryNotes = onSnapshot(qDeliveryNotes, (snap) =>
-      setDeliveryNotes(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
+    const qDeliveryNotes = query(collection(db, 'deliveryNotes'), where('userId', '==', currentUser.uid), orderBy('number', 'desc'));
+    const unsubDeliveryNotes = onSnapshot(qDeliveryNotes, (snap) => setDeliveryNotes(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
 
     return () => {
-      unsubCustomers();
       unsubSettings();
+      unsubCustomers();
       unsubProducts();
       unsubDeliveryNotes();
     };
   }, [currentUser]);
 
   const TabButton = ({ id, children, icon: Icon }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${
-        activeTab === id
-          ? 'bg-blue-50 border-blue-500 text-blue-700'
-          : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-800'
-      }`}
-    >
+    <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${ activeTab === id ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-800' }`}>
       <Icon size={16} /> <span className="hidden sm:inline">{children}</span>
     </button>
   );
 
   const handleRequestNew = (itemType) => {
-    const tabMap = {
-      invoice: 'invoices',
-      delivery_note: 'delivery_notes',
-      customer: 'customers',
-      product: 'products',
-    };
+    const tabMap = { invoice: 'invoices', delivery_note: 'delivery_notes', customer: 'customers', product: 'products' };
     setActiveTab(tabMap[itemType]);
     setCreationRequest(itemType);
   };
@@ -115,80 +94,55 @@ const App = () => {
     return <LoginPage />;
   }
 
+  // --- ZDE JE KLÍČOVÁ ZMĚNA ---
+  // Zobrazíme načítací obrazovku, dokud nejsou data dodavatele a DPH k dispozici
+  if (appLoading) {
+    return <div className="flex items-center justify-center h-screen">Načítání dat...</div>;
+  }
+
   return (
-    // ZDE JE KLÍČOVÁ ZMĚNA: Přidali jsme třídu 'relative'
     <div className="max-w-6xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen relative">
       <Toaster position="top-center" />
       <div className="flex justify-between items-center mb-4">
-        <div className="text-sm">
-          {t('loggedInAs')} <strong>{currentUser.email}</strong>
-        </div>
+        <div className="text-sm">{t('loggedInAs')} <strong>{currentUser.email}</strong></div>
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded text-sm"
-          >
-            <LogOut size={14} />{' '}
-            <span className="hidden sm:inline">{t('logout')}</span>
+          <button onClick={logout} className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded text-sm">
+            <LogOut size={14} /> <span className="hidden sm:inline">{t('logout')}</span>
           </button>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex border-b bg-gray-50 overflow-x-auto">
-          <TabButton id="invoices" icon={FileText}>
-            {t('invoices')}
-          </TabButton>
-          <TabButton id="delivery_notes" icon={ListOrdered}>
-            {t('delivery_notes')}
-          </TabButton>
-          <TabButton id="customers" icon={Building}>
-            {t('customers')}
-          </TabButton>
-          <TabButton id="products" icon={Tag}>
-            {t('products')}
-          </TabButton>
-          <TabButton id="settings" icon={Settings}>
-            {t('settings')}
-          </TabButton>
+          <TabButton id="invoices" icon={FileText}>{t('invoices')}</TabButton>
+          <TabButton id="delivery_notes" icon={ListOrdered}>{t('delivery_notes')}</TabButton>
+          <TabButton id="customers" icon={Building}>{t('customers')}</TabButton>
+          <TabButton id="products" icon={Tag}>{t('products')}</TabButton>
+          <TabButton id="settings" icon={Settings}>{t('settings')}</TabButton>
         </div>
         <div className="p-3 md:p-6">
           {activeTab === 'invoices' && (
             <InvoicesPage
-              creationRequest={creationRequest}
-              setCreationRequest={setCreationRequest}
-              currentUser={currentUser}
-              savedCustomers={savedCustomers}
-              supplier={supplier}
-              vatSettings={vatSettings}
-              deliveryNotes={deliveryNotes}
+              creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers}
+              supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} selectCustomerForNewInvoice={null} // Tento prop zřejmě nepotřebujeme, řídíme přes creationRequest
             />
           )}
           {activeTab === 'delivery_notes' && (
             <DeliveryNotesPage
-              creationRequest={creationRequest}
-              setCreationRequest={setCreationRequest}
-              currentUser={currentUser}
-              supplier={supplier}
-              savedCustomers={savedCustomers}
-              products={products}
-              vatSettings={vatSettings}
+              creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier}
+              savedCustomers={savedCustomers} products={products} vatSettings={vatSettings}
             />
           )}
           {activeTab === 'customers' && (
             <CustomersPage
-              creationRequest={creationRequest}
-              setCreationRequest={setCreationRequest}
-              savedCustomers={savedCustomers}
+              creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers}
               setActiveTab={setActiveTab}
             />
           )}
           {activeTab === 'products' && (
             <ProductsPage
-              creationRequest={creationRequest}
-              setCreationRequest={setCreationRequest}
-              vatSettings={vatSettings}
+              creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings}
               products={products}
             />
           )}
