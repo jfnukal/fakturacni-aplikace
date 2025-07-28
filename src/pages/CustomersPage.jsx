@@ -21,8 +21,9 @@ const CustomersPage = ({ savedCustomers, setActiveTab, selectCustomerForNewInvoi
       const response = await fetch(proxiedUrl);
       if (!response.ok) throw new Error(t('customers_page.alert.ares_error'));
       const data = await response.json();
-      const subject = data.ekonomickeSubjekty[0];
-      if (!subject) {
+        const subject = data; 
+      
+      if (!subject || !subject.obchodniJmeno) {
         alert(t('customers_page.alert.company_not_found'));
         return;
       }
