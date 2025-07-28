@@ -31,3 +31,4 @@ const LanguageSwitcher = () => {
 };
 
 export default LanguageSwitcher;
+//note
