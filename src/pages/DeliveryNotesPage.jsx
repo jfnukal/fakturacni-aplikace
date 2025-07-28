@@ -6,39 +6,9 @@ import { Plus, Edit, Trash2, Save, Download, Share2, Copy } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import ReactDOM from 'react-dom/client';
 import DeliveryNotePrintable from '../components/DeliveryNotePrintable.jsx';
+import { generateNextDocumentNumber } from '../../netlify/functions/numbering.js';
 import ConfirmModal from '../components/ConfirmModal.jsx';
 import { useTranslation } from 'react-i18next';
-
-// --- CHYTRÁ FUNKCE PRO ČÍSLOVÁNÍ DOKUMENTŮ ---
-const generateNextDocumentNumber = (existingNumbers) => {
-  const year = new Date().getFullYear();
-  if (!existingNumbers || existingNumbers.length === 0) {
-    return `${year}-001`; // Výchozí číslo, pokud žádné neexistuje
-  }
-
-  let maxNum = 0;
-  let template = { prefix: `${year}-`, numStr: '001' }; 
-
-  existingNumbers.forEach(numStr => {
-    const match = numStr.match(/^(.*?)(\d+)$/);
-    if (match) {
-      const prefix = match[1];
-      const numPart = match[2];
-      const currentNum = parseInt(numPart, 10);
-
-      if (currentNum >= maxNum) {
-        maxNum = currentNum;
-        template = { prefix, numStr: numPart };
-      }
-    }
-  });
-
-  const nextNum = maxNum + 1;
-  const padding = template.numStr.length;
-
-  return `${template.prefix}${String(nextNum).padStart(padding, '0')}`;
-};
-// ----------------------------------------------------
 
 const formatDateForDisplay = (date) => {
   if (!date) return '';
