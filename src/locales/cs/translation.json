@@ -61,7 +61,9 @@
     "view": "Zobrazit",
     "save_changes": "Uložit změny",
     "save_anyway": "Přesto uložit",
-    "back": "Zpět"
+    "back": "Zpět",
+    "discard_changes": "Zahodit změny", 
+    "save_all_changes": "Uložit všechny změny"
   },
   "customers_page": {
     "title": "Přehled odběratelů",
@@ -97,8 +99,16 @@
     }
   },
   "products_page": {
-    "title": "Správa produktů a ceník",
-    "add_item": "Přidat položku",
+    "title": "Produkty a ceník",
+    "add_item": "Přidat produkt",
+    "drag_handle": "Změnit pořadí",
+    "header": { 
+      "name": "Název produktu",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH/kus",
+      "price_with_vat": "Cena s DPH",
+      "actions": "Akce"
+    },
     "table": {
       "name": "Název",
       "unit": "Jednotka",
@@ -113,7 +123,7 @@
     },
     "alert": {
       "name_required": "Název produktu je povinný.",
-      "confirm_delete": "Opravdu chcete smazat tento produkt?",
+      "confirm_delete": "Opravdu chcete označit tento produkt ke smazání?",
       "move_wip": "Funkce pro změnu pořadí bude dodělána."
     }
   },
