@@ -4,8 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Upload, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const SettingsPage = () => {
+  const { t } = useTranslation();
   const { currentUser } = useAuth();
   const [supplier, setSupplier] = useState({ name: '', address: '', zip: '', city: '', ico: '', dic: '', bankAccount: '', paymentMethod: 'Převodem', logoUrl: '' });
   const [vatSettings, setVatSettings] = useState({ enabled: false, rate: 21 });
@@ -40,10 +42,10 @@ const SettingsPage = () => {
         vatDetails: vatSettings,
         userId: currentUser.uid,
       });
-      alert('Nastavení uloženo!');
+      alert('Nastavení uloženo!'); // Toto můžeme také přeložit, pokud chcete
     } catch (error) {
       console.error("Chyba při ukládání nastavení: ", error);
-      alert('Chyba při ukládání nastavení.');
+      alert('Chyba při ukládání nastavení.'); // Toto také
     }
   };
 
@@ -71,9 +73,10 @@ const SettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Nastavení</h2>
+      <h2 className="text-2xl font-bold">{t('settingsTitle')}</h2>
+      
       <div className="bg-white p-6 rounded-lg border">
-        <h3 className="text-lg font-medium mb-4">Logo firmy</h3>
+        <h3 className="text-lg font-medium mb-4">{t('companyLogo')}</h3>
         <div className="flex items-center gap-4">
           {(logoPreview || supplier.logoUrl) && (
             <div className="w-20 h-20 border rounded flex items-center justify-center bg-gray-50 overflow-hidden">
@@ -83,50 +86,54 @@ const SettingsPage = () => {
           <div className="flex flex-col gap-2">
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} className="hidden" />
             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              <Upload size={16} /> Nahrát logo
+              <Upload size={16} /> {t('uploadLogo')}
             </button>
             {(supplier.logoUrl || logoPreview) && (
               <button onClick={() => { setLogoPreview(''); setSupplier({ ...supplier, logoUrl: '' }); }} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                Odstranit
+                {t('remove')}
               </button>
             )}
-             <div className="text-xs text-gray-500">Max 2MB</div>
+             <div className="text-xs text-gray-500">{t('maxFileSize')}</div>
           </div>
         </div>
       </div>
+
       <div className="bg-white p-6 rounded-lg border">
-        <h3 className="text-lg font-medium mb-4">Nastavení DPH</h3>
+        <h3 className="text-lg font-medium mb-4">{t('vatSettings')}</h3>
         <div className="space-y-4">
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={vatSettings.enabled} onChange={(e) => setVatSettings({ ...vatSettings, enabled: e.target.checked })} className="w-4 h-4" />
-            <span>Jsem plátce DPH</span>
+            <span>{t('vatPayer')}</span>
           </label>
           {vatSettings.enabled && (
             <div>
-              <label className="block text-sm font-medium mb-2">Sazba DPH (%)</label>
+              <label className="block text-sm font-medium mb-2">{t('vatRate')}</label>
               <input type="number" value={vatSettings.rate} onChange={(e) => setVatSettings({ ...vatSettings, rate: parseFloat(e.target.value) || 0 })} className="w-32 p-2 border rounded" />
             </div>
           )}
         </div>
       </div>
+
       <div className="bg-white p-6 rounded-lg border">
-        <h3 className="text-lg font-medium mb-4">Údaje dodavatele</h3>
+        <h3 className="text-lg font-medium mb-4">{t('supplierDetails')}</h3>
         <div className="grid md:grid-cols-2 gap-4">
-          <input type="text" placeholder="Název/Jméno" value={supplier.name} onChange={(e) => setSupplier({ ...supplier, name: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="Adresa" value={supplier.address} onChange={(e) => setSupplier({ ...supplier, address: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="PSČ" value={supplier.zip || ''} onChange={(e) => setSupplier({ ...supplier, zip: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="Město" value={supplier.city} onChange={(e) => setSupplier({ ...supplier, city: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="IČO" value={supplier.ico} onChange={(e) => setSupplier({ ...supplier, ico: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="DIČ" value={supplier.dic} onChange={(e) => setSupplier({ ...supplier, dic: e.target.value })} className="w-full p-2 border rounded" />
-          <input type="text" placeholder="Bankovní účet" value={supplier.bankAccount} onChange={(e) => setSupplier({ ...supplier, bankAccount: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_companyName')} value={supplier.name} onChange={(e) => setSupplier({ ...supplier, name: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_address')} value={supplier.address} onChange={(e) => setSupplier({ ...supplier, address: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_zip')} value={supplier.zip || ''} onChange={(e) => setSupplier({ ...supplier, zip: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_city')} value={supplier.city} onChange={(e) => setSupplier({ ...supplier, city: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_ico')} value={supplier.ico} onChange={(e) => setSupplier({ ...supplier, ico: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_dic')} value={supplier.dic} onChange={(e) => setSupplier({ ...supplier, dic: e.target.value })} className="w-full p-2 border rounded" />
+          <input type="text" placeholder={t('placeholder_bankAccount')} value={supplier.bankAccount} onChange={(e) => setSupplier({ ...supplier, bankAccount: e.target.value })} className="w-full p-2 border rounded" />
         </div>
       </div>
+
       <div className="mt-4">
         <button onClick={saveSettings} className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-          <Save size={16} /> Uložit nastavení
+          <Save size={16} /> {t('saveSettings')}
         </button>
       </div>
     </div>
   );
 };
+
 export default SettingsPage;
