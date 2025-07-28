@@ -52,6 +52,7 @@
   "common": {
     "save": "Зберегти",
     "cancel": "Скасувати",
+    "preview": "Попередній перегляд",
     "discard_changes": "Скасувати зміни",
     "save_all_changes": "Зберегти всі зміни",
     "back_to_list": "Назад до списку",
