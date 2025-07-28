@@ -326,7 +326,7 @@ const InvoicesPage = ({
     );
     setTimeout(() => {
       const opt = {
-        margin: 10,
+        margin: 3,
         filename: `faktura-${invoice.number}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
