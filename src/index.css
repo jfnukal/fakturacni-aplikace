@@ -9,3 +9,21 @@
     margin-right: 0.5rem;
   }
 }
+@media print {
+  /* Skryje celou aplikaci kromě obsahu pro tisk */
+  body > #root {
+    display: none;
+  }
+  
+  /* Zajistí, že kontejner pro tisk a jeho obsah budou viditelné */
+  body > #print-container, body > #print-container * {
+    visibility: visible;
+  }
+  
+  /* Umístí tiskový kontejner na začátek stránky pro tisk */
+  #print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
