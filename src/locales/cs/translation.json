@@ -1,0 +1,226 @@
+{
+  "invoices": "Faktury",
+  "delivery_notes": "Dodací listy",
+  "customers": "Odběratelé",
+  "products": "Produkty",
+  "settings": "Nastavení",
+  "logout": "Odhlásit se",
+  "loggedInAs": "Přihlášen jako:",
+  "settingsTitle": "Nastavení",
+  "companyLogo": "Logo firmy",
+  "uploadLogo": "Nahrát logo",
+  "remove": "Odstranit",
+  "maxFileSize": "Max 2MB",
+  "vatSettings": "Nastavení DPH",
+  "vatPayer": "Jsem plátce DPH",
+  "vatRate": "Sazba DPH (%)",
+  "supplierDetails": "Údaje dodavatele",
+  "saveSettings": "Uložit nastavení",
+  "placeholder_companyName": "Název/Jméno",
+  "placeholder_address": "Adresa",
+  "placeholder_zip": "PSČ",
+  "placeholder_city": "Město",
+  "placeholder_ico": "IČO",
+  "placeholder_dic": "DIČ",
+  "placeholder_bankAccount": "Bankovní účet",
+  "invoice_title": "Faktura",
+  "invoice_number": "Číslo",
+  "supplier": "DODAVATEL",
+  "customer": "ODBĚRATEL",
+  "ico": "IČO",
+  "dic": "DIČ",
+  "notVatPayer": "Neplátce DPH",
+  "bankAccount": "Bankovní účet",
+  "variableSymbol": "Variabilní symbol",
+  "paymentMethod": "Způsob platby",
+  "issueDate": "Datum vystavení",
+  "taxableDate": "Datum zdan. plnění",
+  "dueDate": "Datum splatnosti",
+  "th_description": "Popis",
+  "th_quantity": "Množství",
+  "th_unit": "Jednotka",
+  "th_pricePerUnit": "Cena za MJ",
+  "th_total": "Celkem",
+  "currency_czk": "Kč",
+  "subtotal": "Mezisoučet",
+  "vat_rate_display": "DPH {{rate}}%",
+  "totalToPay": "Celkem k úhradě",
+  "qrPayment": "QR Platba",
+  "deliveryNote_title": "Dodací list",
+  "deliveryNote_number": "Číslo",
+  "th_total_without_vat": "Celkem bez DPH",
+  "common": {
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "back_to_list": "Zpět na přehled",
+    "download_pdf": "Stáhnout PDF",
+    "share": "Sdílet",
+    "clone": "Klonovat",
+    "edit": "Upravit",
+    "delete": "Smazat",
+    "view": "Zobrazit",
+    "save_changes": "Uložit změny",
+    "save_anyway": "Přesto uložit",
+    "back": "Zpět"
+  },
+  "customers_page": {
+    "title": "Přehled odběratelů",
+    "new": "Nový odběratel",
+    "edit_title": "Upravit odběratele",
+    "new_title": "Nový odběratel",
+    "table": {
+      "name": "Název",
+      "ico": "IČO",
+      "city": "Město",
+      "actions": "Akce"
+    },
+    "action": {
+      "create_invoice": "Vytvořit fakturu"
+    },
+    "form": {
+      "company_name": "Název firmy",
+      "address": "Adresa",
+      "zip": "PSČ",
+      "city": "Město",
+      "ico": "IČO",
+      "ares": "ARES",
+      "dic": "DIČ",
+      "notes": "Poznámky..."
+    },
+    "alert": {
+      "invalid_ico": "Zadejte platné osmimístné IČO.",
+      "ares_error": "Chyba při komunikaci s ARES.",
+      "company_not_found": "Firma s daným IČO nebyla nalezena.",
+      "ares_fetch_failed": "Nepodařilo se načíst data z ARES.",
+      "name_required": "Jméno odběratele je povinné.",
+      "confirm_delete": "Opravdu chcete smazat tohoto odběratele?"
+    }
+  },
+  "products_page": {
+    "title": "Správa produktů a ceník",
+    "add_item": "Přidat položku",
+    "table": {
+      "name": "Název",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH",
+      "price_with_vat": "Cena s DPH",
+      "actions": "Akce"
+    },
+    "form": {
+      "product_name": "Název produktu",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH"
+    },
+    "alert": {
+      "name_required": "Název produktu je povinný.",
+      "confirm_delete": "Opravdu chcete smazat tento produkt?",
+      "move_wip": "Funkce pro změnu pořadí bude dodělána."
+    }
+  },
+  "delivery_notes_page": {
+    "title": "Přehled dodacích listů",
+    "new": "Nový dodací list",
+    "edit_title": "Upravit dodací list",
+    "new_title": "Nový dodací list",
+    "save": "Uložit dodací list",
+    "loading": "Načítání dodacích listů...",
+    "table": {
+      "number": "Číslo",
+      "customer": "Odběratel",
+      "issue_date": "Vystaveno dne",
+      "amount": "Částka",
+      "with_vat": "(s DPH: {{amount}} Kč)"
+    },
+    "form": {
+      "number": "Číslo dodacího listu:",
+      "issue_date": "Vystaveno dne:",
+      "customer": "Odběratel",
+      "select_customer": "Vybrat odběratele...",
+      "items": "Položky",
+      "item_name": "Název",
+      "item_price": "Cena bez DPH/ks",
+      "item_quantity": "Množství",
+      "show_prices": "Zobrazit ceny v PDF",
+      "total_without_vat": "Celkem bez DPH:",
+      "total_with_vat": "Celkem s DPH:"
+    },
+    "alert": {
+      "customer_required": "Před uložením prosím vyberte odběratele.",
+      "save_error": "Chyba při ukládání DL:",
+      "generic_save_error": "Nastala chyba při ukládání.",
+      "confirm_delete": "Opravdu chcete smazat tento dodací list?",
+      "share_not_supported": "Sdílení není na tomto zařízení podporováno.",
+      "share_error": "Chyba při sdílení:"
+    },
+    "modal": {
+      "missing_number_title": "Chybějící číslo dodacího listu",
+      "missing_number_message": "Není vyplněno číslo dodacího listu. Můžete ho doplnit zde, nebo DL uložit bez něj.",
+      "number_label": "Číslo dodacího listu",
+      "confirm_save": "Doplnit a uložit"
+    }
+  },
+  "invoices_page": {
+    "title": "Přehled faktur",
+    "create_from_dl": "Vytvořit z DL",
+    "new": "Nová faktura",
+    "loading": "Načítání faktur...",
+    "table": {
+      "number": "Číslo",
+      "customer": "Odběratel",
+      "issued": "Vystaveno",
+      "amount": "Částka",
+      "status": "Stav",
+      "actions": "Akce"
+    },
+    "status": {
+      "draft": "Koncept",
+      "pending": "Čeká na platbu",
+      "paid": "Zaplaceno",
+      "overdue": "Po splatnosti"
+    },
+    "dl_select": {
+      "title": "Vybrat dodací listy k fakturaci",
+      "alert": {
+        "no_selection": "Prosím, vyberte alespoň jeden dodací list.",
+        "multiple_customers": "Nelze vytvořit fakturu z dodacích listů pro různé odběratele."
+      },
+      "create_from_selected": "Vytvořit fakturu z vybraných"
+    },
+    "edit_title": "Upravit fakturu {{number}}",
+    "new_title": "Nová faktura",
+    "create": "Vytvořit fakturu",
+    "form": {
+      "number": "Číslo faktury",
+      "issue_date": "Datum vystavení",
+      "taxable_date": "DUZP",
+      "due_days": "Splatnost (dny)",
+      "customer": "Odběratel",
+      "select_saved": "Vybrat uloženého",
+      "customer_name": "Název",
+      "customer_address": "Adresa",
+      "customer_zip": "PSČ",
+      "customer_city": "Město",
+      "customer_ico": "IČO",
+      "customer_dic": "DIČ",
+      "items": "Položky",
+      "item_description": "Popis",
+      "item_quantity": "Počet",
+      "item_unit": "MJ",
+      "item_price": "Cena",
+      "add_item": "Přidat položku",
+      "preview_title": "Náhled faktury"
+    },
+    "alert": {
+      "confirm_delete": "Opravdu chcete smazat tuto fakturu?"
+    },
+    "modal": {
+      "missing_number_title": "Chybějící číslo faktury",
+      "missing_number_message": "Není vyplněno číslo faktury. Můžete ho doplnit zde, nebo fakturu uložit bez něj.",
+      "number_label": "Číslo faktury",
+      "confirm_save": "Doplnit a uložit"
+    },
+    "preview": {
+      "loading": "Načítání dat pro náhled..."
+    }
+  }
+}
