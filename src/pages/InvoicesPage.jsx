@@ -663,6 +663,22 @@ const InvoicesPage = ({
     }, 500);
   };
 
+const handleShare = (invoice) => {
+  if (navigator.share) {
+    // Na mobilech použijeme native sharing
+    navigator.share({
+      title: `Faktura ${invoice.number}`,
+      text: `Faktura pro ${invoice.customer.name}`,
+      url: window.location.href
+    });
+  } else {
+    // Na desktopu zkopírujeme URL do schránky
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      alert('Odkaz zkopírován do schránky!');
+    });
+  }
+};
+  
   const handleAction = (actionKey, invoice) => {
   switch (actionKey) {
     case 'edit':
