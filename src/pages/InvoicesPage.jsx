@@ -1156,9 +1156,23 @@ const InvoicesPage = ({
           <div className="flex gap-4 pt-4">
             <button onClick={handleSaveInvoice} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"><Save size={16} />{editingInvoice ? t('common.save_changes') : t('invoices_page.create')}</button>
             
-            {/* ZJEDNODUŠENÉ TLAČÍTKO PRO NÁHLED */}
-            <button type="button" onClick={() => setShowPreviewModal(true)} className="flex items-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-                <Eye size={16} /> {t('common.preview')}
+            <button 
+              type="button" 
+              onClick={() => setShowPreviewModal(true)} 
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+                <Eye size={16} /> 
+                <span>{t('common.preview')}</span>
+            </button>
+
+            {/* Nové tlačítko Tisk */}
+            <button 
+              type="button" 
+              onClick={() => handlePrint(currentInvoice)} 
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+                <Printer size={16} /> 
+                <span>{t('common.print')}</span>
             </button>
             
             <button onClick={() => setCurrentView('list')} className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300">{t('common.cancel')}</button>
