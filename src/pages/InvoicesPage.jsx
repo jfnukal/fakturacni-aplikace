@@ -32,18 +32,24 @@ import { useTranslation } from 'react-i18next';
 import { generateNextDocumentNumber } from '../../netlify/functions/numbering.js';
 
 // Komponenta pro modální okno náhledu
-// Komponenta pro modální okno náhledu na mobilu
 const PreviewModal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
   return (
-        <div onClick={onClose} className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-lg w-full max-w-4xl h-[90vh] overflow-y-auto relative">
-        <button onClick={onClose} className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full hover:bg-gray-300 z-10">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-lg w-full max-w-4xl h-[90vh] overflow-y-auto relative"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full hover:bg-gray-300 z-10"
+        >
           <X size={20} />
         </button>
-        <div className="p-1">
-          {children}
-        </div>
+        <div className="p-1">{children}</div>
       </div>
     </div>
   );
@@ -100,7 +106,7 @@ const InvoicesPage = ({
   const [isSelectingDL, setIsSelectingDL] = useState(false);
   const [selectedDLs, setSelectedDLs] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false); // Sjednocený stav pro náhled
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     if (creationRequest === 'invoice') {
@@ -154,19 +160,6 @@ const InvoicesPage = ({
         : 0;
     const total = subtotal + vatAmount;
     return { subtotal, vatAmount, total };
-  };
-
-  const calculateDlTotal = (items) => {
-    if (!items) return { totalWithoutVat: 0 };
-    return {
-      totalWithoutVat: items.reduce(
-        (sum, item) =>
-          sum +
-          item.quantity *
-            (parseFloat(String(item.price).replace(',', '.')) || 0),
-        0
-      ),
-    };
   };
 
   const saveInvoiceFlow = async (invoiceData) => {
@@ -346,40 +339,6 @@ const InvoicesPage = ({
         .then(() => {
           document.body.removeChild(element);
         });
-    }, 500);
-  };
-
-  const handleShare = async (invoice) => {
-    if (!navigator.share || !navigator.canShare) {
-      alert(t('delivery_notes_page.alert.share_not_supported'));
-      return;
-    }
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-    const root = ReactDOM.createRoot(element);
-    root.render(
-      <InvoicePrintable
-        invoice={invoice}
-        supplier={supplier}
-        vatSettings={vatSettings}
-      />
-    );
-    setTimeout(async () => {
-      try {
-        const blob = await html2pdf().from(element.firstChild).output('blob');
-        const file = new File([blob], `faktura-${invoice.number}.pdf`, {
-          type: 'application/pdf',
-        });
-        await navigator.share({
-          title: `Faktura ${invoice.number}`,
-          text: `Zde je faktura ${invoice.number}.`,
-          files: [file],
-        });
-      } catch (error) {
-        console.error('Chyba při sdílení: ', error);
-      } finally {
-        document.body.removeChild(element);
-      }
     }, 500);
   };
 
@@ -938,8 +897,19 @@ const InvoicesPage = ({
       {currentView === 'create' && (
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentView('list')} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">← {t('common.back_to_list')}</button>
-            <h2 className="text-2xl font-bold">{editingInvoice ? t('invoices_page.edit_title', { number: editingInvoice.number }) : t('invoices_page.new_title')}</h2>
+            <button
+              onClick={() => setCurrentView('list')}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              ← {t('common.back_to_list')}
+            </button>
+            <h2 className="text-2xl font-bold">
+              {editingInvoice
+                ? t('invoices_page.edit_title', {
+                    number: editingInvoice.number,
+                  })
+                : t('invoices_page.new_title')}
+            </h2>
           </div>
           <div className="bg-gray-50 rounded-lg p-6 space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
@@ -1129,53 +1099,156 @@ const InvoicesPage = ({
               </div>
             </div>
             <div>
-            <h3 className="text-lg font-medium mb-3">{t('invoices_page.form.items')}</h3>
-                <div className="space-y-3">
-                    <div className="hidden md:flex gap-2 text-sm font-medium text-gray-600 px-1">
-                        <div className="flex-grow">{t('invoices_page.form.item_description')}</div>
-                        <div className="w-20 text-center">{t('invoices_page.form.item_quantity')}</div>
-                        <div className="w-16 text-center">{t('invoices_page.form.item_unit')}</div>
-                        <div className="w-24 text-right">{t('invoices_page.form.item_price')}</div>
-                        <div className="w-28 text-right">{t('th_total')}</div>
-                        <div className="w-16 text-center"></div>
-                    </div>
-                    {currentInvoice.items.map((item) => (
-                        <div key={item.id} className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border">
-                            <div className="w-full md:flex-grow order-1"><label className="text-xs font-medium text-gray-600 md:hidden">{t('invoices_page.form.item_description')}</label><input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full p-1 border rounded text-sm" placeholder={t('invoices_page.form.item_description')} /></div>
-                            <div className="w-1/3 md:w-20 order-2"><label className="text-xs font-medium text-gray-600 md:hidden">{t('invoices_page.form.item_quantity')}</label><input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full p-1 border rounded text-sm text-center" placeholder="1" /></div>
-                            <div className="w-1/3 md:w-16 order-3"><label className="text-xs font-medium text-gray-600 md:hidden">{t('invoices_page.form.item_unit')}</label><input type="text" value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} className="w-full p-1 border rounded text-sm text-center" placeholder="ks" /></div>
-                            <div className="w-1/3 md:w-24 order-4"><label className="text-xs font-medium text-gray-600 md:hidden">{t('invoices_page.form.item_price')}</label><input type="number" value={item.pricePerUnit} onChange={(e) => updateItem(item.id, 'pricePerUnit', parseFloat(e.target.value) || 0)} className="w-full p-1 border rounded text-sm text-right" placeholder="0.00" step="0.01" /></div>
-                            <div className="w-1/2 md:w-28 order-5"><label className="text-xs font-medium text-gray-600 md:hidden">{t('th_total')}</label><input type="text" value={Number(item.totalPrice).toFixed(2)} readOnly className="w-full p-1 border-none rounded text-sm text-right bg-gray-50" /></div>
-                            <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6"><button onClick={() => addItemBelow(item.id)} className="p-1 text-green-600 hover:text-green-800" title="Přidat řádek pod"><PlusCircle size={18} /></button><button onClick={() => removeItem(item.id)} className="p-1 text-red-600 hover:text-red-800" title={t('common.delete')}><Trash2 size={18} /></button></div>
-                        </div>
-                    ))}
+              <h3 className="text-lg font-medium mb-3">
+                {t('invoices_page.form.items')}
+              </h3>
+              <div className="space-y-3">
+                <div className="hidden md:flex gap-2 text-sm font-medium text-gray-600 px-1">
+                  <div className="flex-grow">
+                    {t('invoices_page.form.item_description')}
+                  </div>
+                  <div className="w-20 text-center">
+                    {t('invoices_page.form.item_quantity')}
+                  </div>
+                  <div className="w-16 text-center">
+                    {t('invoices_page.form.item_unit')}
+                  </div>
+                  <div className="w-24 text-right">
+                    {t('invoices_page.form.item_price')}
+                  </div>
+                  <div className="w-28 text-right">{t('th_total')}</div>
+                  <div className="w-16 text-center"></div>
                 </div>
+                {currentInvoice.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
+                  >
+                    <div className="w-full md:flex-grow order-1">
+                      <label className="text-xs font-medium text-gray-600 md:hidden">
+                        {t('invoices_page.form.item_description')}
+                      </label>
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) =>
+                          updateItem(item.id, 'description', e.target.value)
+                        }
+                        className="w-full p-1 border rounded text-sm"
+                        placeholder={t('invoices_page.form.item_description')}
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-20 order-2">
+                      <label className="text-xs font-medium text-gray-600 md:hidden">
+                        {t('invoices_page.form.item_quantity')}
+                      </label>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateItem(
+                            item.id,
+                            'quantity',
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-full p-1 border rounded text-sm text-center"
+                        placeholder="1"
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-16 order-3">
+                      <label className="text-xs font-medium text-gray-600 md:hidden">
+                        {t('invoices_page.form.item_unit')}
+                      </label>
+                      <input
+                        type="text"
+                        value={item.unit}
+                        onChange={(e) =>
+                          updateItem(item.id, 'unit', e.target.value)
+                        }
+                        className="w-full p-1 border rounded text-sm text-center"
+                        placeholder="ks"
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-24 order-4">
+                      <label className="text-xs font-medium text-gray-600 md:hidden">
+                        {t('invoices_page.form.item_price')}
+                      </label>
+                      <input
+                        type="number"
+                        value={item.pricePerUnit}
+                        onChange={(e) =>
+                          updateItem(
+                            item.id,
+                            'pricePerUnit',
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-full p-1 border rounded text-sm text-right"
+                        placeholder="0.00"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="w-1/2 md:w-28 order-5">
+                      <label className="text-xs font-medium text-gray-600 md:hidden">
+                        {t('th_total')}
+                      </label>
+                      <input
+                        type="text"
+                        value={Number(item.totalPrice).toFixed(2)}
+                        readOnly
+                        className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
+                      />
+                    </div>
+                    <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6">
+                      <button
+                        onClick={() => addItemBelow(item.id)}
+                        className="p-1 text-green-600 hover:text-green-800"
+                        title="Přidat řádek pod"
+                      >
+                        <PlusCircle size={18} />
+                      </button>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="p-1 text-red-600 hover:text-red-800"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          
-          <div className="flex gap-4 pt-4">
-            <button onClick={handleSaveInvoice} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"><Save size={16} />{editingInvoice ? t('common.save_changes') : t('invoices_page.create')}</button>
+
+         <div className="flex flex-wrap justify-end gap-4 pt-4">
+            <button onClick={handleSaveInvoice} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              <Save size={16} />
+              <span>{editingInvoice ? t('common.save_changes') : t('invoices_page.create')}</span>
+            </button>
             
             <button 
               type="button" 
               onClick={() => setShowPreviewModal(true)} 
               className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
             >
-                <Eye size={16} /> 
+                <Eye size={16} className="pointer-events-none" /> 
                 <span>{t('common.preview')}</span>
             </button>
 
-            {/* Nové tlačítko Tisk */}
             <button 
               type="button" 
               onClick={() => handlePrint(currentInvoice)} 
               className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
             >
-                <Printer size={16} /> 
+                <Printer size={16} className="pointer-events-none" /> 
                 <span>{t('common.print')}</span>
             </button>
             
-            <button onClick={() => setCurrentView('list')} className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300">{t('common.cancel')}</button>
+            <button onClick={() => setCurrentView('list')} className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300">
+              {t('common.cancel')}
+            </button>
           </div>
         </div>
       )}
