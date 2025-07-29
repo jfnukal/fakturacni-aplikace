@@ -121,7 +121,7 @@ const App = () => {
           <TabButton id="products" icon={Tag}>{t('products')}</TabButton>
           <TabButton id="settings" icon={Settings}>{t('settings')}</TabButton>
         </div>
-        <div className="p-3 md:p-6">
+        <div className="p-3 md:p-6 pb-24">
           {activeTab === 'invoices' && (
             <InvoicesPage
               creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers}
