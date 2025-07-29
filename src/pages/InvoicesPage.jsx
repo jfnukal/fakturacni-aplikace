@@ -31,8 +31,74 @@ import ReactDOM from 'react-dom/client';
 import * as ReactDOMPortal from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal.jsx';
 import { useTranslation } from 'react-i18next';
-import { generateNextDocumentNumber } from '../../netlify/functions/numbering.js';
 
+// Lokální funkce pro generování čísel dokumentů (náhrada za Netlify funkci)
+const generateNextDocumentNumber = (existingNumbers) => {
+  if (!existingNumbers || existingNumbers.length === 0) {
+    const year = new Date().getFullYear();
+    return `${year}-001`;
+  }
+  
+  const currentYear = new Date().getFullYear();
+  const currentYearNumbers = existingNumbers
+    .filter(num => num && num.startsWith(currentYear.toString()))
+    .map(num => {
+      const parts = num.split('-');
+      return parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    })
+    .filter(num => !isNaN(num));
+  
+  const maxNumber = currentYearNumbers.length > 0 ? Math.max(...currentYearNumbers) : 0;
+  const nextNumber = maxNumber + 1;
+  
+  return `${currentYear}-${nextNumber.toString().padStart(3, '0')}`;
+};
+
+// Utility funkce pro cleanup DOM elementů
+const cleanupDOMElement = (element, root) => {
+  try {
+    if (root && typeof root.unmount === 'function') {
+      root.unmount();
+    }
+    if (element && element.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  } catch (error) {
+    console.warn('Cleanup error:', error);
+  }
+};
+
+function getNewInvoice() {
+  return {
+    id: Date.now(),
+    number: '',
+    issueDate: new Date().toLocaleDateString('cs-CZ', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+    duzpDate: new Date().toLocaleDateString('cs-CZ', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+    dueDate: '',
+    dueDays: 14,
+    currency: 'CZK',
+    customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
+    items: [
+      {
+        id: Date.now(),
+        quantity: 1,
+        unit: 'ks',
+        description: '',
+        pricePerUnit: 0,
+        totalPrice: 0,
+      },
+    ],
+    status: 'draft',
+  };
+}
 // --- Komponenta pro "..." menu s využitím Portálu ---
 const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
   const { t } = useTranslation();
@@ -44,8 +110,20 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
         onClose();
       }
     };
+    
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [onClose]);
 
   const actions = [
@@ -103,7 +181,7 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
                 onAction(action.key, invoice);
                 onClose();
               }}
-              className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 ${
+              className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${
                 action.className || ''
               }`}
             >
@@ -119,7 +197,20 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
 };
 
 const PreviewModal = ({ isOpen, onClose, children }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+  
   return (
     <div
       onClick={onClose}
@@ -131,7 +222,7 @@ const PreviewModal = ({ isOpen, onClose, children }) => {
       >
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full hover:bg-gray-300 z-10"
+          className="absolute top-2 right-2 p-2 bg-gray-200 rounded-full hover:bg-gray-300 z-10 transition-colors"
         >
           <X size={20} />
         </button>
@@ -157,13 +248,12 @@ const StatusBadge = ({ status }) => {
   };
   return (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}
+      className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.draft}`}
     >
-      {labels[status]}
+      {labels[status] || labels.draft}
     </span>
   );
 };
-
 const InvoicePreview = ({
   invoice,
   supplier,
@@ -171,6 +261,7 @@ const InvoicePreview = ({
   calculateTotals,
 }) => {
   const { t } = useTranslation();
+  
   if (!supplier || !vatSettings || !invoice) {
     return (
       <div className="text-center p-10">
@@ -178,19 +269,25 @@ const InvoicePreview = ({
       </div>
     );
   }
+  
   const { subtotal, vatAmount, total } = calculateTotals(invoice, vatSettings);
+  
   const generatePaymentQR = (invoice, supplier) => {
     const amount = total.toFixed(2);
     const vs = invoice.number.replace(/\D/g, '');
     const bankAccount = supplier.bankAccount || '';
+    
     if (!bankAccount || !amount || !vs) return null;
+    
     const paymentString = `SPD*1.0*ACC:${bankAccount.replace(
       '/',
       '-'
     )}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
+    
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
       paymentString
     )}`;
+    
     return (
       <div className="flex flex-col items-start">
         <div className="w-24 h-24 border border-gray-300 bg-white p-1">
@@ -198,12 +295,16 @@ const InvoicePreview = ({
             src={qrUrl}
             alt="QR platba"
             className="w-full h-full object-contain"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
           />
         </div>
         <div className="text-xs text-gray-600 mt-1">{t('qrPayment')}</div>
       </div>
     );
   };
+  
   return (
     <div
       className="border rounded-lg p-6 bg-white"
@@ -217,6 +318,9 @@ const InvoicePreview = ({
                 src={supplier.logoUrl}
                 alt="Logo"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
           )}
@@ -227,6 +331,7 @@ const InvoicePreview = ({
           </div>
         </div>
       </div>
+
       <div className="grid md:grid-cols-2 gap-8 mb-8">
         <div>
           <h3 className="text-sm text-gray-600 mb-2">{t('supplier')}</h3>
@@ -272,6 +377,7 @@ const InvoicePreview = ({
           </div>
         </div>
       </div>
+
       <div className="grid md:grid-cols-2 gap-8 mb-8">
         <div className="space-y-1 text-sm">
           <div>
@@ -296,6 +402,7 @@ const InvoicePreview = ({
           </div>
         </div>
       </div>
+
       <div className="border rounded-lg overflow-hidden mb-8">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -318,7 +425,7 @@ const InvoicePreview = ({
             </tr>
           </thead>
           <tbody>
-            {invoice.items.map((item) => (
+            {invoice.items && invoice.items.map((item) => (
               <tr key={item.id} className="border-t">
                 <td className="p-3">{item.description}</td>
                 <td className="p-3 text-center">{item.quantity}</td>
@@ -334,6 +441,7 @@ const InvoicePreview = ({
           </tbody>
         </table>
       </div>
+
       <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
         <div>{generatePaymentQR(invoice, supplier)}</div>
         <div className="w-full md:w-80 space-y-1">
@@ -364,45 +472,12 @@ const InvoicePreview = ({
     </div>
   );
 };
-
-function getNewInvoice() {
-  return {
-    id: Date.now(),
-    number: '',
-    issueDate: new Date().toLocaleDateString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }),
-    duzpDate: new Date().toLocaleDateString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }),
-    dueDate: '',
-    dueDays: 14,
-    currency: 'CZK',
-    customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
-    items: [
-      {
-        id: Date.now(),
-        quantity: 1,
-        unit: 'ks',
-        description: '',
-        pricePerUnit: 0,
-        totalPrice: 0,
-      },
-    ],
-    status: 'draft',
-  };
-}
-
 const InvoicesPage = ({
   currentUser,
-  savedCustomers,
+  savedCustomers = [],
   supplier,
   vatSettings,
-  deliveryNotes,
+  deliveryNotes = [],
   creationRequest,
   setCreationRequest,
 }) => {
@@ -417,6 +492,10 @@ const InvoicesPage = ({
   const [selectedDLs, setSelectedDLs] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  
+  // Refs pro cleanup
+  const pdfRootRef = useRef(null);
+  const printRootRef = useRef(null);
 
   const goToList = () => {
     setCurrentView('list');
@@ -433,78 +512,108 @@ const InvoicesPage = ({
 
   useEffect(() => {
     if (!currentUser) return;
+    
     const q = query(
       collection(db, 'invoices'),
       where('userId', '==', currentUser.uid),
       orderBy('number', 'desc')
     );
+    
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      setInvoices(
-        querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
-      setLoading(false);
+      try {
+        const invoicesData = querySnapshot.docs.map((doc) => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        }));
+        setInvoices(invoicesData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading invoices:', error);
+        setLoading(false);
+      }
     });
+    
     return () => unsubscribe();
   }, [currentUser]);
 
   const handleAddNew = (customer = null) => {
-    const allNumbers = invoices.map((inv) => inv.number);
-    const newInv = getNewInvoice();
-    newInv.number = generateNextDocumentNumber(allNumbers);
-    if (customer) {
-      newInv.customer = {
-        name: customer.name,
-        address: customer.address,
-        zip: customer.zip,
-        city: customer.city,
-        ico: customer.ico,
-        dic: customer.dic,
-      };
+    try {
+      const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
+      const newInv = getNewInvoice();
+      newInv.number = generateNextDocumentNumber(allNumbers);
+      
+      if (customer) {
+        newInv.customer = {
+          name: customer.name || '',
+          address: customer.address || '',
+          zip: customer.zip || '',
+          city: customer.city || '',
+          ico: customer.ico || '',
+          dic: customer.dic || '',
+        };
+      }
+      
+      setCurrentInvoice(newInv);
+      setEditingInvoice(null);
+      setCurrentView('create');
+    } catch (error) {
+      console.error('Error creating new invoice:', error);
     }
-    setCurrentInvoice(newInv);
-    setEditingInvoice(null);
-    setCurrentView('create');
   };
 
   const calculateTotals = (invoice, currentVatSettings) => {
-    if (!invoice || !invoice.items)
+    if (!invoice || !invoice.items || !Array.isArray(invoice.items)) {
       return { subtotal: 0, vatAmount: 0, total: 0 };
+    }
+    
     const subtotal = invoice.items.reduce(
-      (sum, item) => sum + (item.totalPrice || 0),
+      (sum, item) => sum + (Number(item.totalPrice) || 0),
       0
     );
+    
     const vatAmount =
       currentVatSettings && currentVatSettings.enabled
-        ? (subtotal * currentVatSettings.rate) / 100
+        ? (subtotal * (Number(currentVatSettings.rate) || 0)) / 100
         : 0;
+        
     const total = subtotal + vatAmount;
+    
     return { subtotal, vatAmount, total };
   };
 
   const saveInvoiceFlow = async (invoiceData) => {
-    if (!currentUser) return;
-    const { total } = calculateTotals(invoiceData, vatSettings);
-    const invoiceToSave = {
-      ...invoiceData,
-      total,
-      status: 'pending',
-      userId: currentUser.uid,
-    };
-    delete invoiceToSave.id;
+    if (!currentUser) {
+      console.error('No current user');
+      return;
+    }
+    
     try {
+      const { total } = calculateTotals(invoiceData, vatSettings);
+      const invoiceToSave = {
+        ...invoiceData,
+        total,
+        status: 'pending',
+        userId: currentUser.uid,
+        updatedAt: new Date(),
+      };
+      
+      delete invoiceToSave.id;
+      
       if (editingInvoice) {
         await updateDoc(doc(db, 'invoices', editingInvoice.id), invoiceToSave);
       } else {
+        invoiceToSave.createdAt = new Date();
         await addDoc(collection(db, 'invoices'), invoiceToSave);
       }
+      
       goToList();
     } catch (error) {
-      console.error('Chyba: ', error);
+      console.error('Error saving invoice:', error);
     }
   };
 
   const handleSaveInvoice = () => {
-    if (!currentInvoice?.number) {
+    if (!currentInvoice?.number?.trim()) {
       setShowConfirmModal(true);
     } else {
       saveInvoiceFlow(currentInvoice);
@@ -512,40 +621,49 @@ const InvoicesPage = ({
   };
 
   const cloneInvoice = (invoiceToClone) => {
-    const allNumbers = invoices.map((inv) => inv.number);
-    const newInvoice = {
-      ...JSON.parse(JSON.stringify(invoiceToClone)),
-      number: generateNextDocumentNumber(allNumbers),
-      issueDate: new Date().toLocaleDateString('cs-CZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }),
-      duzpDate: new Date().toLocaleDateString('cs-CZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }),
-      dueDate: calculateDueDate(
-        new Date().toLocaleDateString('cs-CZ'),
-        invoiceToClone.dueDays || 14
-      ),
-      status: 'draft',
-    };
-    delete newInvoice.id;
-    setCurrentInvoice(newInvoice);
-    setEditingInvoice(null);
-    setCurrentView('create');
+    try {
+      const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
+      const newInvoice = {
+        ...JSON.parse(JSON.stringify(invoiceToClone)),
+        number: generateNextDocumentNumber(allNumbers),
+        issueDate: new Date().toLocaleDateString('cs-CZ', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }),
+        duzpDate: new Date().toLocaleDateString('cs-CZ', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }),
+        dueDate: calculateDueDate(
+          new Date().toLocaleDateString('cs-CZ'),
+          invoiceToClone.dueDays || 14
+        ),
+        status: 'draft',
+      };
+      
+      delete newInvoice.id;
+      setCurrentInvoice(newInvoice);
+      setEditingInvoice(null);
+      setCurrentView('create');
+    } catch (error) {
+      console.error('Error cloning invoice:', error);
+    }
   };
 
   const deleteInvoice = async (id) => {
     if (window.confirm(t('invoices_page.alert.confirm_delete'))) {
-      await deleteDoc(doc(db, 'invoices', id));
+      try {
+        await deleteDoc(doc(db, 'invoices', id));
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+      }
     }
   };
 
   const createNewItem = () => ({
-    id: Date.now(),
+    id: Date.now() + Math.random(),
     quantity: 1,
     unit: 'ks',
     description: '',
@@ -554,6 +672,8 @@ const InvoicesPage = ({
   });
 
   const addItemBelow = (currentItemId) => {
+    if (!currentInvoice) return;
+    
     const newItems = [];
     currentInvoice.items.forEach((item) => {
       newItems.push(item);
@@ -563,14 +683,19 @@ const InvoicesPage = ({
     });
     setCurrentInvoice((prev) => ({ ...prev, items: newItems }));
   };
+
   const removeItem = (id) => {
-    if (currentInvoice.items.length <= 1) return;
+    if (!currentInvoice || currentInvoice.items.length <= 1) return;
+    
     setCurrentInvoice({
       ...currentInvoice,
       items: currentInvoice.items.filter((item) => item.id !== id),
     });
   };
+
   const updateItem = (id, field, value) => {
+    if (!currentInvoice) return;
+    
     setCurrentInvoice({
       ...currentInvoice,
       items: currentInvoice.items.map((item) => {
@@ -587,21 +712,30 @@ const InvoicesPage = ({
       }),
     });
   };
+
   const calculateDueDate = (issueDate, days) => {
     if (!issueDate || !days) return '';
+    
     try {
       const dateParts = issueDate.split('.').map((part) => parseInt(part, 10));
+      if (dateParts.length !== 3) return '';
+      
       const date = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
-      date.setDate(date.getDate() + days);
+      if (isNaN(date.getTime())) return '';
+      
+      date.setDate(date.getDate() + parseInt(days, 10));
+      
       return date.toLocaleDateString('cs-CZ', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       });
     } catch (e) {
+      console.error('Error calculating due date:', e);
       return '';
     }
   };
+
   const editInvoice = (invoice) => {
     const fullInvoice = {
       ...invoice,
@@ -616,40 +750,15 @@ const InvoicesPage = ({
     setCurrentView('create');
   };
 
-  const handleDownloadPdf = (invoice) => {
-  const element = document.createElement('div');
-  document.body.appendChild(element);
-  const root = ReactDOM.createRoot(element);
-  root.render(
-    <InvoicePrintable
-      invoice={invoice}
-      supplier={supplier}
-      vatSettings={vatSettings}
-    />
-  );
-  setTimeout(() => {
-    const opt = {
-      margin: 10,
-      filename: `faktura-${invoice.number}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
-    html2pdf()
-      .from(element.firstChild)
-      .set(opt)
-      .save()
-      .then(() => {
-        document.body.removeChild(element);
-      });
-  }, 500);
-};
-
-  const handlePrint = (invoice) => {
-    const printContainer = document.createElement('div');
-    printContainer.id = 'print-container';
-    document.body.appendChild(printContainer);
-    const root = ReactDOM.createRoot(printContainer);
+const handleDownloadPdf = (invoice) => {
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    document.body.appendChild(element);
+    
+    const root = ReactDOM.createRoot(element);
+    pdfRootRef.current = root;
+    
     root.render(
       <InvoicePrintable
         invoice={invoice}
@@ -657,95 +766,158 @@ const InvoicesPage = ({
         vatSettings={vatSettings}
       />
     );
+    
     setTimeout(() => {
-      window.print();
-      document.body.removeChild(printContainer);
+      const opt = {
+        margin: 10,
+        filename: `faktura-${invoice.number}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      };
+      
+      html2pdf()
+        .from(element.firstChild)
+        .set(opt)
+        .save()
+        .then(() => {
+          cleanupDOMElement(element, pdfRootRef.current);
+          pdfRootRef.current = null;
+        })
+        .catch((error) => {
+          console.error('PDF generation error:', error);
+          cleanupDOMElement(element, pdfRootRef.current);
+          pdfRootRef.current = null;
+        });
     }, 500);
   };
 
-const handleShare = (invoice) => {
-  if (navigator.share) {
-    // Na mobilech použijeme native sharing
-    navigator.share({
-      title: `Faktura ${invoice.number}`,
-      text: `Faktura pro ${invoice.customer.name}`,
-      url: window.location.href
-    });
-  } else {
-    // Na desktopu zkopírujeme URL do schránky
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      alert('Odkaz zkopírován do schránky!');
-    });
-  }
-};
-  
-  const handleAction = (actionKey, invoice) => {
-  switch (actionKey) {
-    case 'edit':
-      editInvoice(invoice);
-      break;
-    case 'clone':
-      cloneInvoice(invoice);
-      break;
-    case 'print':
-      handlePrint(invoice);
-      break;
-    case 'view':
-      setCurrentInvoice(invoice);
-      setShowPreviewModal(true);
-      break;
-    case 'download':
-      handleDownloadPdf(invoice);
-      break;
-    case 'share':
-      handleShare(invoice); // Přidáme tuto funkci
-      break;
-    case 'delete':
-      deleteInvoice(invoice.id);
-      break;
-    default:
-      break;
-  }
-};
-  
-  const MoreActionsButton = ({ invoice }) => {
-  const buttonRef = useRef(null);
-  const isMenuOpen = openMenu.id === invoice.id;
-
-  const handleMenuToggle = (e) => {
-    e.stopPropagation();
+  const handlePrint = (invoice) => {
+    const printContainer = document.createElement('div');
+    printContainer.id = 'print-container';
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
+    document.body.appendChild(printContainer);
     
-    // Přidáme malé zpoždění, aby byl ref připravený
+    const root = ReactDOM.createRoot(printContainer);
+    printRootRef.current = root;
+    
+    root.render(
+      <InvoicePrintable
+        invoice={invoice}
+        supplier={supplier}
+        vatSettings={vatSettings}
+      />
+    );
+    
     setTimeout(() => {
-      setOpenMenu((prev) =>
-        prev.id === invoice.id
-          ? { id: null, ref: null }
-          : { id: invoice.id, ref: buttonRef.current } // Uložíme přímo element
-      );
-    }, 0);
+      try {
+        window.print();
+      } finally {
+        cleanupDOMElement(printContainer, printRootRef.current);
+        printRootRef.current = null;
+      }
+    }, 500);
   };
 
-  return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={handleMenuToggle}
-        className="p-2 text-gray-600 hover:bg-gray-200 rounded-md"
-        title="Další akce"
-      >
-        <MoreVertical size={20} />
-      </button>
-      {isMenuOpen && (
-        <ActionsMenu
-          invoice={invoice}
-          onAction={handleAction}
-          onClose={() => setOpenMenu({ id: null, ref: null })}
-          targetElement={openMenu.ref} // Použijeme uložený element
-        />
-      )}
-    </div>
-  );
-};
+  const handleShare = async (invoice) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Faktura ${invoice.number}`,
+          text: `Faktura pro ${invoice.customer.name}`,
+          url: window.location.href
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Odkaz zkopírován do schránky!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleAction = (actionKey, invoice) => {
+    switch (actionKey) {
+      case 'edit':
+        editInvoice(invoice);
+        break;
+      case 'clone':
+        cloneInvoice(invoice);
+        break;
+      case 'print':
+        handlePrint(invoice);
+        break;
+      case 'view':
+        setCurrentInvoice(invoice);
+        setShowPreviewModal(true);
+        break;
+      case 'download':
+        handleDownloadPdf(invoice);
+        break;
+      case 'share':
+        handleShare(invoice); 
+        break;
+      case 'delete':
+        deleteInvoice(invoice.id);
+        break;
+      default:
+        console.warn('Unknown action:', actionKey);
+        break;
+    }
+  };
+
+  const MoreActionsButton = ({ invoice }) => {
+    const buttonRef = useRef(null);
+    const isMenuOpen = openMenu.id === invoice.id;
+  
+    const handleMenuToggle = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      setTimeout(() => {
+        setOpenMenu((prev) =>
+          prev.id === invoice.id
+            ? { id: null, ref: null }
+            : { id: invoice.id, ref: buttonRef.current }
+        );
+      }, 0);
+    };
+  
+    return (
+      <div className="relative">
+        <button
+          ref={buttonRef}
+          onTouchStart={(e) => e.stopPropagation()}  
+          onClick={handleMenuToggle}
+          className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors" 
+          title="Další akce"
+        >
+          <MoreVertical size={20} />
+        </button>
+        {isMenuOpen && (
+          <ActionsMenu
+            invoice={invoice}
+            onAction={handleAction}
+            onClose={() => setOpenMenu({ id: null, ref: null })}
+            targetElement={openMenu.ref}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Cleanup při unmount
+  useEffect(() => {
+    return () => {
+      if (pdfRootRef.current) {
+        cleanupDOMElement(null, pdfRootRef.current);
+      }
+      if (printRootRef.current) {
+        cleanupDOMElement(null, printRootRef.current);
+      }
+    };
+  }, []);
 
   const modalConfig = currentInvoice
     ? {
@@ -756,7 +928,11 @@ const handleShare = (invoice) => {
         initialValue: currentInvoice.number,
         confirmText: t('invoices_page.modal.confirm_save'),
         onConfirm: (newNumber) => {
-          const updatedInvoice = { ...currentInvoice, number: newNumber };
+          if (!newNumber?.trim()) {
+            alert('Číslo faktury nemůže být prázdné');
+            return;
+          }
+          const updatedInvoice = { ...currentInvoice, number: newNumber.trim() };
           setCurrentInvoice(updatedInvoice);
           saveInvoiceFlow(updatedInvoice);
           setShowConfirmModal(false);
@@ -769,7 +945,11 @@ const handleShare = (invoice) => {
     : {};
 
   if (loading) {
-    return <div>{t('invoices_page.loading')}</div>;
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-lg">{t('invoices_page.loading')}</div>
+      </div>
+    );
   }
 
   return (
@@ -779,6 +959,7 @@ const handleShare = (invoice) => {
         config={modalConfig}
         onClose={() => setShowConfirmModal(false)}
       />
+      
       {currentInvoice && (
         <PreviewModal
           isOpen={showPreviewModal}
@@ -797,7 +978,15 @@ const handleShare = (invoice) => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('invoices_page.title')}</h2>
+            <button
+              onClick={() => handleAddNew()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} />
+              <span>{t('invoices_page.new_title')}</span>
+            </button>
           </div>
+
           <div className="bg-white border rounded-lg overflow-visible">
             <div className="hidden md:grid grid-cols-6 p-4 bg-gray-50 font-medium">
               <div className="col-span-2">
@@ -814,68 +1003,97 @@ const handleShare = (invoice) => {
                 {t('invoices_page.table.actions')}
               </div>
             </div>
+
             <div className="divide-y divide-gray-200">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  onClick={() => editInvoice(invoice)}
-                  className="md:grid md:grid-cols-6 items-center p-4 hover:bg-gray-50 cursor-pointer block"
-                >
-                  <div className="md:col-span-2 mb-2 md:mb-0">
-                    <div className="font-bold">{invoice.customer.name}</div>
-                    <div className="text-sm text-gray-500 md:hidden">
+              {invoices.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <div className="mb-4">
+                    <Edit size={48} className="mx-auto text-gray-300" />
+                  </div>
+                  <div className="text-lg font-medium mb-2">
+                    {t('invoices_page.empty.title')}
+                  </div>
+                  <div className="text-sm">
+                    {t('invoices_page.empty.subtitle')}
+                  </div>
+                  <button
+                    onClick={() => handleAddNew()}
+                    className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                    <span>{t('invoices_page.new_title')}</span>
+                  </button>
+                </div>
+              ) : (
+                invoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    onClick={() => editInvoice(invoice)}
+                    className="md:grid md:grid-cols-6 items-center p-4 hover:bg-gray-50 cursor-pointer block transition-colors"
+                  >
+                    <div className="md:col-span-2 mb-2 md:mb-0">
+                      <div className="font-bold">{invoice.customer?.name || 'Bez názvu'}</div>
+                      <div className="text-sm text-gray-500 md:hidden">
+                        {invoice.number}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 hidden md:block">
                       {invoice.number}
                     </div>
-                  </div>
-                  <div className="text-sm text-gray-500 hidden md:block">
-                    {invoice.number}
-                  </div>
-                  <div className="text-right font-medium">
-                    {(invoice.total || 0).toFixed(2)} {t('currency_czk')}
-                  </div>
-                  <div className="text-center">
-                    <StatusBadge status={invoice.status} />
-                  </div>
-                  <div
-                    className="md:text-right"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex gap-1 justify-end mt-2 md:mt-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction('edit', invoice);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-gray-200 rounded-md"
-                        title={t('common.edit')}
-                      >
-                        <Edit size={20} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction('clone', invoice);
-                        }}
-                        className="p-2 text-purple-600 hover:bg-gray-200 rounded-md"
-                        title={t('common.clone')}
-                      >
-                        <Copy size={20} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction('print', invoice);
-                        }}
-                        className="p-2 text-gray-600 hover:bg-gray-200 rounded-md"
-                        title={t('common.print')}
-                      >
-                        <Printer size={20} />
-                      </button>
-                      <MoreActionsButton invoice={invoice} />
+                    <div className="text-right font-medium">
+                      {(invoice.total || 0).toFixed(2)} {t('currency_czk')}
+                    </div>
+                    <div className="text-center">
+                      <StatusBadge status={invoice.status || 'draft'} />
+                    </div>
+                    <div
+                      className="md:text-right"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex gap-1 justify-end mt-2 md:mt-0">
+                        <button
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAction('edit', invoice);
+                          }}
+                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+                          title={t('common.edit')}
+                        >
+                          <Edit size={20} />
+                        </button>
+                        <button
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAction('clone', invoice);
+                          }}
+                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+                          title={t('common.clone')}
+                        >
+                          <Copy size={20} />
+                        </button>
+                        <button
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAction('print', invoice);
+                          }}
+                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+                          title={t('common.print')}
+                        >
+                          <Printer size={20} />
+                        </button>
+                        <MoreActionsButton invoice={invoice} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -886,7 +1104,7 @@ const handleShare = (invoice) => {
           <div className="flex items-center gap-4">
             <button
               onClick={goToList}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               ← {t('common.back_to_list')}
             </button>
@@ -896,14 +1114,14 @@ const handleShare = (invoice) => {
             <div className="flex-grow"></div>
             <button
               onClick={() => handlePrint(currentInvoice)}
-              className="p-2 text-gray-600 hover:text-gray-800"
+              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
               title={t('common.print')}
             >
               <Printer size={20} />
             </button>
             <button
               onClick={() => handleDownloadPdf(currentInvoice)}
-              className="p-2 text-gray-600 hover:text-gray-800"
+              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
               title={t('common.download_pdf')}
             >
               <Download size={20} />
@@ -923,7 +1141,7 @@ const handleShare = (invoice) => {
           <div className="flex items-center gap-4">
             <button
               onClick={goToList}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               ← {t('common.back_to_list')}
             </button>
@@ -935,24 +1153,25 @@ const handleShare = (invoice) => {
                 : t('invoices_page.new_title')}
             </h2>
           </div>
+
           <div className="bg-gray-50 rounded-lg p-6 space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <input
                 type="text"
                 placeholder={t('invoices_page.form.number')}
-                value={currentInvoice.number}
+                value={currentInvoice.number || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
                     ...currentInvoice,
                     number: e.target.value,
                   })
                 }
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
                 placeholder={t('invoices_page.form.issue_date')}
-                value={currentInvoice.issueDate}
+                value={currentInvoice.issueDate || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
                     ...currentInvoice,
@@ -963,24 +1182,24 @@ const handleShare = (invoice) => {
                     ),
                   })
                 }
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="text"
                 placeholder={t('invoices_page.form.taxable_date')}
-                value={currentInvoice.duzpDate}
+                value={currentInvoice.duzpDate || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
                     ...currentInvoice,
                     duzpDate: e.target.value,
                   })
                 }
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="number"
                 placeholder={t('invoices_page.form.due_days')}
-                value={currentInvoice.dueDays}
+                value={currentInvoice.dueDays || ''}
                 onChange={(e) => {
                   const days = parseInt(e.target.value, 10) || 0;
                   setCurrentInvoice({
@@ -989,51 +1208,56 @@ const handleShare = (invoice) => {
                     dueDate: calculateDueDate(currentInvoice.issueDate, days),
                   });
                 }}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-medium">
                   {t('invoices_page.form.customer')}
                 </h3>
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      const customer = savedCustomers.find(
-                        (c) => c.id === e.target.value
-                      );
-                      if (customer)
-                        setCurrentInvoice({
-                          ...currentInvoice,
-                          customer: {
-                            name: customer.name,
-                            address: customer.address,
-                            zip: customer.zip,
-                            city: customer.city,
-                            ico: customer.ico,
-                            dic: customer.dic,
-                          },
-                        });
-                    }
-                  }}
-                  className="px-3 py-1 border rounded text-sm"
-                >
-                  <option value="">
-                    {t('invoices_page.form.select_saved')}
-                  </option>
-                  {savedCustomers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
+                {savedCustomers && savedCustomers.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const customer = savedCustomers.find(
+                          (c) => c.id === e.target.value
+                        );
+                        if (customer) {
+                          setCurrentInvoice({
+                            ...currentInvoice,
+                            customer: {
+                              name: customer.name || '',
+                              address: customer.address || '',
+                              zip: customer.zip || '',
+                              city: customer.city || '',
+                              ico: customer.ico || '',
+                              dic: customer.dic || '',
+                            },
+                          });
+                        }
+                      }
+                    }}
+                    className="px-3 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">
+                      {t('invoices_page.form.select_saved')}
                     </option>
-                  ))}
-                </select>
+                    {savedCustomers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_name')}
-                  value={currentInvoice.customer.name}
+                  value={currentInvoice.customer?.name || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1043,12 +1267,12 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_address')}
-                  value={currentInvoice.customer.address}
+                  value={currentInvoice.customer?.address || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1058,12 +1282,12 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_zip')}
-                  value={currentInvoice.customer.zip || ''}
+                  value={currentInvoice.customer?.zip || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1073,12 +1297,12 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_city')}
-                  value={currentInvoice.customer.city}
+                  value={currentInvoice.customer?.city || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1088,12 +1312,12 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_ico')}
-                  value={currentInvoice.customer.ico}
+                  value={currentInvoice.customer?.ico || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1103,12 +1327,12 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                   type="text"
                   placeholder={t('invoices_page.form.customer_dic')}
-                  value={currentInvoice.customer.dic}
+                  value={currentInvoice.customer?.dic || ''}
                   onChange={(e) =>
                     setCurrentInvoice({
                       ...currentInvoice,
@@ -1118,10 +1342,11 @@ const handleShare = (invoice) => {
                       },
                     })
                   }
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
+
             <div>
               <h3 className="text-lg font-medium mb-3">
                 {t('invoices_page.form.items')}
@@ -1143,7 +1368,8 @@ const handleShare = (invoice) => {
                   <div className="w-28 text-right">{t('th_total')}</div>
                   <div className="w-16 text-center"></div>
                 </div>
-                {currentInvoice.items.map((item) => (
+
+                {currentInvoice.items && currentInvoice.items.map((item) => (
                   <div
                     key={item.id}
                     className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
@@ -1154,11 +1380,11 @@ const handleShare = (invoice) => {
                       </label>
                       <input
                         type="text"
-                        value={item.description}
+                        value={item.description || ''}
                         onChange={(e) =>
                           updateItem(item.id, 'description', e.target.value)
                         }
-                        className="w-full p-1 border rounded text-sm"
+                        className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder={t('invoices_page.form.item_description')}
                       />
                     </div>
@@ -1168,7 +1394,7 @@ const handleShare = (invoice) => {
                       </label>
                       <input
                         type="number"
-                        value={item.quantity}
+                        value={item.quantity || ''}
                         onChange={(e) =>
                           updateItem(
                             item.id,
@@ -1176,8 +1402,10 @@ const handleShare = (invoice) => {
                             parseFloat(e.target.value) || 0
                           )
                         }
-                        className="w-full p-1 border rounded text-sm text-center"
+                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="1"
+                        min="0"
+                        step="0.01"
                       />
                     </div>
                     <div className="w-1/3 md:w-16 order-3">
@@ -1186,11 +1414,11 @@ const handleShare = (invoice) => {
                       </label>
                       <input
                         type="text"
-                        value={item.unit}
+                        value={item.unit || ''}
                         onChange={(e) =>
                           updateItem(item.id, 'unit', e.target.value)
                         }
-                        className="w-full p-1 border rounded text-sm text-center"
+                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="ks"
                       />
                     </div>
@@ -1200,7 +1428,7 @@ const handleShare = (invoice) => {
                       </label>
                       <input
                         type="number"
-                        value={item.pricePerUnit}
+                        value={item.pricePerUnit || ''}
                         onChange={(e) =>
                           updateItem(
                             item.id,
@@ -1208,8 +1436,9 @@ const handleShare = (invoice) => {
                             parseFloat(e.target.value) || 0
                           )
                         }
-                        className="w-full p-1 border rounded text-sm text-right"
+                        className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="0.00"
+                        min="0"
                         step="0.01"
                       />
                     </div>
@@ -1219,7 +1448,7 @@ const handleShare = (invoice) => {
                       </label>
                       <input
                         type="text"
-                        value={Number(item.totalPrice).toFixed(2)}
+                        value={Number(item.totalPrice || 0).toFixed(2)}
                         readOnly
                         className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
                       />
@@ -1227,28 +1456,31 @@ const handleShare = (invoice) => {
                     <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6">
                       <button
                         onClick={() => addItemBelow(item.id)}
-                        className="p-1 text-green-600 hover:text-green-800"
+                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
                         title="Přidat řádek pod"
                       >
                         <PlusCircle size={18} />
                       </button>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="p-1 text-red-600 hover:text-red-800"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {currentInvoice.items.length > 1 && (
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+
           <div className="flex flex-wrap justify-end gap-4 pt-4">
             <button
               onClick={handleSaveInvoice}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               <Save size={16} />
               <span>
@@ -1260,7 +1492,7 @@ const handleShare = (invoice) => {
             <button
               type="button"
               onClick={() => setShowPreviewModal(true)}
-              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               <Eye size={16} className="pointer-events-none" />
               <span>{t('common.preview')}</span>
@@ -1268,14 +1500,14 @@ const handleShare = (invoice) => {
             <button
               type="button"
               onClick={() => handlePrint(currentInvoice)}
-              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="flex items-center justify-center gap-2 px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               <Printer size={16} className="pointer-events-none" />
               <span>{t('common.print')}</span>
             </button>
             <button
               onClick={goToList}
-              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              className="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
               {t('common.cancel')}
             </button>
@@ -1285,4 +1517,5 @@ const handleShare = (invoice) => {
     </>
   );
 };
+
 export default InvoicesPage;
