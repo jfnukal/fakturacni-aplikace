@@ -664,31 +664,34 @@ const InvoicesPage = ({
   };
 
   const handleAction = (actionKey, invoice) => {
-    switch (actionKey) {
-      case 'edit':
-        editInvoice(invoice);
-        break;
-      case 'clone':
-        cloneInvoice(invoice);
-        break;
-      case 'print':
-        handlePrint(invoice);
-        break;
-      case 'view':
-        setCurrentInvoice(invoice);
-        setShowPreviewModal(true);
-        break;
-      case 'download':
-        handleDownloadPdf(invoice);
-        break;
-      case 'delete':
-        deleteInvoice(invoice.id);
-        break;
-      default:
-        break;
-    }
-  };
-
+  switch (actionKey) {
+    case 'edit':
+      editInvoice(invoice);
+      break;
+    case 'clone':
+      cloneInvoice(invoice);
+      break;
+    case 'print':
+      handlePrint(invoice);
+      break;
+    case 'view':
+      setCurrentInvoice(invoice);
+      setShowPreviewModal(true);
+      break;
+    case 'download':
+      handleDownloadPdf(invoice);
+      break;
+    case 'share':
+      handleShare(invoice); // Přidáme tuto funkci
+      break;
+    case 'delete':
+      deleteInvoice(invoice.id);
+      break;
+    default:
+      break;
+  }
+};
+  
   const MoreActionsButton = ({ invoice }) => {
   const buttonRef = useRef(null);
   const isMenuOpen = openMenu.id === invoice.id;
