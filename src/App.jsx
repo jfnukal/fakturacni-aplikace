@@ -97,7 +97,14 @@ const App = () => {
           {activeTab === 'delivery_notes' && ( <DeliveryNotesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier} savedCustomers={savedCustomers} products={products} vatSettings={vatSettings} /> )}
           {activeTab === 'customers' && ( <CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} setActiveTab={setActiveTab} /> )}
           {activeTab === 'products' && ( <ProductsPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings} products={products} /> )}
-          {activeTab === 'settings' && <SettingsPage />}
+          {activeTab === 'settings' && (
+              <SettingsPage 
+                currentUser={currentUser}
+                savedCustomers={savedCustomers}
+                products={products}
+                deliveryNotes={deliveryNotes}
+              />
+            )}
         </div>
       </div>
       <CreationMenu onRequestNew={handleRequestNew} />
