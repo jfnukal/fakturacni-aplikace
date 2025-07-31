@@ -102,13 +102,13 @@ function getNewInvoice() {
 }
 
 // Modální okno pro výběr dodacích listů
-const DeliveryNotesSelectionModal = ({ 
-  isOpen, 
-  onClose, 
-  deliveryNotes, 
+const DeliveryNotesSelectionModal = ({
+  isOpen,
+  onClose,
+  deliveryNotes,
   onCreateInvoice,
   calculateDlTotal,
-  t 
+  t,
 }) => {
   const [selectedDLs, setSelectedDLs] = useState([]);
 
@@ -127,12 +127,14 @@ const DeliveryNotesSelectionModal = ({
     const notesToProcess = deliveryNotes.filter((note) =>
       selectedDLs.includes(note.id)
     );
-    
+
     if (notesToProcess.length === 0) return;
 
     const firstCustomer = notesToProcess[0].customer;
 
-    if (!notesToProcess.every((note) => note.customer?.id === firstCustomer?.id)) {
+    if (
+      !notesToProcess.every((note) => note.customer?.id === firstCustomer?.id)
+    ) {
       alert('Nelze vytvořit fakturu z dodacích listů pro různé odběratele.');
       return;
     }
@@ -146,11 +148,11 @@ const DeliveryNotesSelectionModal = ({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       onClick={onClose}
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
     >
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
       >
@@ -168,7 +170,9 @@ const DeliveryNotesSelectionModal = ({
           {unInvoicedNotes.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="mb-2">Žádné nefakturované dodací listy</div>
-              <div className="text-sm">Všechny dodací listy již byly vyfakturovány</div>
+              <div className="text-sm">
+                Všechny dodací listy již byly vyfakturovány
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -181,8 +185,14 @@ const DeliveryNotesSelectionModal = ({
                     <div className="font-medium mb-1">Jak to funguje:</div>
                     <ul className="space-y-1 text-xs">
                       <li>• Vyberte dodací listy, které chcete vyfakturovat</li>
-                      <li>• Všechny vybrané dodací listy musí patřit stejnému zákazníkovi</li>
-                      <li>• Z každého dodacího listu se vytvoří jedna položka faktury</li>
+                      <li>
+                        • Všechny vybrané dodací listy musí patřit stejnému
+                        zákazníkovi
+                      </li>
+                      <li>
+                        • Z každého dodacího listu se vytvoří jedna položka
+                        faktury
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -198,45 +208,53 @@ const DeliveryNotesSelectionModal = ({
                     <div className="w-20 text-center">Datum</div>
                   </div>
                 </div>
-                
+
                 <div className="divide-y divide-gray-200">
-                  {deliveryNotes.filter((note) => !note.invoiced).map((note) => {
-                    const { totalWithoutVat } = calculateDlTotal(note.items);
-                    const isSelected = selectedDLs.includes(note.id);
-                    
-                    return (
-                      <div 
-                        key={note.id} 
-                        className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                        }`}
-                        onClick={() => {
-                          setSelectedDLs((prev) =>
-                            prev.includes(note.id) 
-                              ? prev.filter((id) => id !== note.id) 
-                              : [...prev, note.id]
-                          );
-                        }}
-                      >
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <div className="w-32 font-medium">{note.number}</div>
-                          <div className="flex-1 text-gray-700">{note.customer?.name}</div>
-                          <div className="w-24 text-right font-medium">
-                            {totalWithoutVat.toFixed(2)} Kč
-                          </div>
-                          <div className="w-20 text-center text-sm text-gray-500">
-                            {note.date}
+                  {deliveryNotes
+                    .filter((note) => !note.invoiced)
+                    .map((note) => {
+                      const { totalWithoutVat } = calculateDlTotal(note.items);
+                      const isSelected = selectedDLs.includes(note.id);
+
+                      return (
+                        <div
+                          key={note.id}
+                          className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-50 border-l-4 border-l-blue-500'
+                              : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedDLs((prev) =>
+                              prev.includes(note.id)
+                                ? prev.filter((id) => id !== note.id)
+                                : [...prev, note.id]
+                            );
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <div className="w-32 font-medium">
+                              {note.number}
+                            </div>
+                            <div className="flex-1 text-gray-700">
+                              {note.customer?.name}
+                            </div>
+                            <div className="w-24 text-right font-medium">
+                              {totalWithoutVat.toFixed(2)} Kč
+                            </div>
+                            <div className="w-20 text-center text-sm text-gray-500">
+                              {note.date}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
 
@@ -244,13 +262,28 @@ const DeliveryNotesSelectionModal = ({
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
-                      <span className="font-medium">Vybráno:</span> {selectedDLs.length} dodací{selectedDLs.length === 1 ? ' list' : selectedDLs.length < 5 ? ' listy' : ' listů'}
+                      <span className="font-medium">Vybráno:</span>{' '}
+                      {selectedDLs.length} dodací
+                      {selectedDLs.length === 1
+                        ? ' list'
+                        : selectedDLs.length < 5
+                        ? ' listy'
+                        : ' listů'}
                     </div>
                     <div className="text-sm font-medium">
-                      Celkem: {deliveryNotes
-                        .filter(note => selectedDLs.includes(note.id) && !note.invoiced)
-                        .reduce((sum, note) => sum + calculateDlTotal(note.items).totalWithoutVat, 0)
-                        .toFixed(2)} Kč
+                      Celkem:{' '}
+                      {deliveryNotes
+                        .filter(
+                          (note) =>
+                            selectedDLs.includes(note.id) && !note.invoiced
+                        )
+                        .reduce(
+                          (sum, note) =>
+                            sum + calculateDlTotal(note.items).totalWithoutVat,
+                          0
+                        )
+                        .toFixed(2)}{' '}
+                      Kč
                     </div>
                   </div>
                 </div>
@@ -259,9 +292,15 @@ const DeliveryNotesSelectionModal = ({
           )}
         </div>
 
-        <table style={{width: '100%', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb'}}>
+        <table
+          style={{
+            width: '100%',
+            borderTop: '1px solid #e5e7eb',
+            backgroundColor: '#f9fafb',
+          }}
+        >
           <tr>
-            <td style={{padding: '24px', textAlign: 'right'}}>
+            <td style={{ padding: '24px', textAlign: 'right' }}>
               <button
                 onClick={onClose}
                 style={{
@@ -271,7 +310,7 @@ const DeliveryNotesSelectionModal = ({
                   backgroundColor: 'white',
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
               >
                 Zrušit
@@ -284,8 +323,9 @@ const DeliveryNotesSelectionModal = ({
                   borderRadius: '6px',
                   border: 'none',
                   cursor: selectedDLs.length === 0 ? 'not-allowed' : 'pointer',
-                  backgroundColor: selectedDLs.length === 0 ? '#d1d5db' : '#2563eb',
-                  color: selectedDLs.length === 0 ? '#6b7280' : 'white'
+                  backgroundColor:
+                    selectedDLs.length === 0 ? '#d1d5db' : '#2563eb',
+                  color: selectedDLs.length === 0 ? '#6b7280' : 'white',
                 }}
               >
                 Vytvořit fakturu z vybraných
@@ -764,10 +804,14 @@ const InvoicesPage = ({
 
   const calculateDlTotal = (items) => {
     if (!items) return { totalWithoutVat: 0 };
-    return { 
-      totalWithoutVat: items.reduce((sum, item) => 
-        sum + (item.quantity * (parseFloat(String(item.price).replace(',', '.')) || 0)), 0
-      ) 
+    return {
+      totalWithoutVat: items.reduce(
+        (sum, item) =>
+          sum +
+          item.quantity *
+            (parseFloat(String(item.price).replace(',', '.')) || 0),
+        0
+      ),
     };
   };
 
@@ -857,7 +901,10 @@ const InvoicesPage = ({
       newInvoice.number = generateNextDocumentNumber(allNumbers);
       newInvoice.customer = firstCustomer;
       newInvoice.items = newItems;
-      newInvoice.dueDate = calculateDueDate(newInvoice.issueDate, newInvoice.dueDays || 14);
+      newInvoice.dueDate = calculateDueDate(
+        newInvoice.issueDate,
+        newInvoice.dueDays || 14
+      );
 
       setCurrentInvoice(newInvoice);
       setEditingInvoice(null);
@@ -1041,33 +1088,38 @@ const InvoicesPage = ({
     }, 500);
   };
 
-  const handlePrint = (invoice) => {
-    const printContainer = document.createElement('div');
-    printContainer.id = 'print-container';
-    printContainer.style.position = 'absolute';
-    printContainer.style.left = '-9999px';
-    document.body.appendChild(printContainer);
+ const handlePrint = (invoice) => {
+  const printContainer = document.createElement('div');
+  printContainer.id = 'print-container';
+  printContainer.style.position = 'absolute';
+  printContainer.style.left = '-9999px';
+  document.body.appendChild(printContainer);
 
-    const root = ReactDOM.createRoot(printContainer);
-    printRootRef.current = root;
+  const root = ReactDOM.createRoot(printContainer);
+  printRootRef.current = root;
 
-    root.render(
-      <InvoicePrintable
-        invoice={invoice}
-        supplier={supplier}
-        vatSettings={vatSettings}
-      />
-    );
+  root.render(
+    <InvoicePrintable
+      invoice={invoice}
+      supplier={supplier}
+      vatSettings={vatSettings}
+    />
+  );
 
-    setTimeout(() => {
-      try {
-        window.print();
-      } finally {
+  setTimeout(() => {
+    try {
+      window.print();
+    } finally {
+      // Čekáme na dokončení tisku před odstraněním
+      const cleanup = () => {
         cleanupDOMElement(printContainer, printRootRef.current);
-        printRootRef.current = null;
-      }
-    }, 500);
-  };
+        window.removeEventListener('afterprint', cleanup);
+      };
+      
+      window.addEventListener('afterprint', cleanup);
+    }
+  }, 1000); // Zvýšené zpoždění
+};
 
   const handleShare = async (invoice) => {
     try {
@@ -1240,7 +1292,7 @@ const InvoicesPage = ({
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('invoices_page.title')}</h2>
             <div className="flex gap-2">
-             <button
+              <button
                 onClick={() => setShowDLModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
               >
@@ -1730,15 +1782,28 @@ const InvoicesPage = ({
                         />
                       </div>
                       {vatSettings?.enabled && (
-                        <div className="w-1/4 order-4-5" style={{width: '70px'}} >
-                          <label className="text-xs font-medium text-gray-600 md:hidden">DPH</label>
+                        <div
+                          className="w-1/4 order-4-5"
+                          style={{ width: '70px' }}
+                        >
+                          <label className="text-xs font-medium text-gray-600 md:hidden">
+                            DPH
+                          </label>
                           <select
                             value={item.vatRate || 21}
-                            onChange={(e) => updateItem(item.id, 'vatRate', parseInt(e.target.value))}
+                            onChange={(e) =>
+                              updateItem(
+                                item.id,
+                                'vatRate',
+                                parseInt(e.target.value)
+                              )
+                            }
                             className="w-full -px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
-                            {(vatSettings.rates || [21]).map(rate => (
-                              <option key={rate} value={rate}>{rate}%</option>
+                            {(vatSettings.rates || [21]).map((rate) => (
+                              <option key={rate} value={rate}>
+                                {rate}%
+                              </option>
                             ))}
                           </select>
                         </div>
