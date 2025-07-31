@@ -6,8 +6,6 @@ const InvoicePrintable = React.forwardRef(
     const { t } = useTranslation();
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
 
-    // --- ZDE JE KLÍČOVÁ OPRAVA ---
-    // Pokud chybí klíčová data, komponenta nic nevykreslí a zabrání pádu aplikace.
     if (!invoice || !supplier || !vatSettings) {
       return null;
     }
@@ -17,7 +15,6 @@ const InvoicePrintable = React.forwardRef(
         (sum, item) => sum + (item.totalPrice || 0),
         0
       );
-      // Nyní je jisté, že vatSettings není null
       const vatAmount = vatSettings.enabled
         ? (subtotal * vatSettings.rate) / 100
         : 0;
@@ -62,128 +59,398 @@ const InvoicePrintable = React.forwardRef(
       generateQrCodeAsDataUrl();
     }, [invoice, supplier, total]);
 
-    const translateInCzech = (key, options = {}) => t(key, { ...options, lng: 'cs' });
+    const translateInCzech = (key, options = {}) =>
+      t(key, { ...options, lng: 'cs' });
 
     return (
       <div
         ref={ref}
-        className="p-8 bg-white text-black"
-        style={{ width: '210mm', fontFamily: 'sans-serif', fontSize: '10pt' }}
+        style={{
+          width: '190mm',
+          padding: '5mm',
+          margin: '0',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '9pt',
+          lineHeight: '1.2',
+          backgroundColor: 'white',
+          color: 'black',
+        }}
       >
-        {/* Zbytek kódu zůstává stejný jako v minulé funkční verzi */}
-        <div className="flex justify-between items-start mb-10">
-          <div className="flex items-center gap-4">
-            {supplier.logoUrl && (
-              <div className="w-24 h-24 flex items-center justify-center">
-                <img
-                  src={supplier.logoUrl}
-                  alt="Logo"
-                  className="max-w-full max-h-full object-contain"
-                  crossOrigin="anonymous"
-                />
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold">{translateInCzech('invoice_title')}</h1>
-              <div className="text-lg">{translateInCzech('invoice_number')}: {invoice.number}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-10">
-          <div>
-            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">{translateInCzech('supplier')}</h3>
-            <div className="space-y-1">
-              <div className="font-semibold">{supplier.name}</div>
-              <div>{supplier.address}</div>
-              <div>{supplier.zip} {supplier.city}</div>
-              <div className="mt-2 space-y-1">
-                <div>{translateInCzech('ico')}: {supplier.ico}</div>
-                {supplier.dic && <div>{translateInCzech('dic')}: {supplier.dic}</div>}
-                {vatSettings && !vatSettings.enabled && <div>{translateInCzech('notVatPayer')}</div>}
-              </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xs text-gray-600 mb-2 font-bold tracking-wider">{translateInCzech('customer')}</h3>
-            <div className="space-y-1">
-              <div className="font-semibold">{invoice.customer.name}</div>
-              <div>{invoice.customer.address}</div>
-              <div>{invoice.customer.zip} {invoice.customer.city}</div>
-              <div className="mt-2 space-y-1">
-                <div>{translateInCzech('ico')}: {invoice.customer.ico}</div>
-                {invoice.customer.dic && <div>{translateInCzech('dic')}: {invoice.customer.dic}</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-10">
-          <div className="space-y-1">
-            <div><span className="font-semibold">{translateInCzech('bankAccount')}:</span> {supplier.bankAccount}</div>
-            <div><span className="font-semibold">{translateInCzech('variableSymbol')}:</span> {invoice.number.replace(/-/g, '')}</div>
-            <div><span className="font-semibold">{translateInCzech('paymentMethod')}:</span> {supplier.paymentMethod}</div>
-          </div>
-          <div className="space-y-1">
-            <div><span className="font-semibold">{translateInCzech('issueDate')}:</span> {invoice.issueDate}</div>
-            <div><span className="font-semibold">{translateInCzech('taxableDate')}:</span> {invoice.duzpDate}</div>
-            <div><span className="font-semibold">{translateInCzech('dueDate')}:</span> {invoice.dueDate}</div>
-          </div>
-        </div>
-
-        <table className="w-full mb-10">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left p-2 font-semibold w-1/2">{translateInCzech('th_description')}</th>
-              <th className="text-center p-2 font-semibold">{translateInCzech('th_quantity')}</th>
-              <th className="text-center p-2 font-semibold">{translateInCzech('th_unit')}</th>
-              <th className="text-right p-2 font-semibold">{translateInCzech('th_pricePerUnit')}</th>
-              <th className="text-right p-2 font-semibold">{translateInCzech('th_total')}</th>
-            </tr>
-          </thead>
+        {/* Header jako tabulka */}
+        <table
+          style={{
+            width: '100%',
+            marginBottom: '8mm',
+            borderCollapse: 'collapse',
+          }}
+        >
           <tbody>
-            {invoice.items.map((item) => (
-              <tr key={item.id} className="border-b">
-                <td className="p-2 align-top">{item.description}</td>
-                <td className="p-2 text-center align-top">{item.quantity}</td>
-                <td className="p-2 text-center align-top">{item.unit}</td>
-                <td className="p-2 text-right align-top">{Number(item.pricePerUnit).toFixed(2)} {translateInCzech('currency_czk')}</td>
-                <td className="p-2 text-right align-top">{Number(item.totalPrice).toFixed(2)} {translateInCzech('currency_czk')}</td>
-              </tr>
-            ))}
+            <tr>
+              <td style={{ width: '20%', verticalAlign: 'top' }}>
+                {supplier.logoUrl && (
+                  <div style={{ width: '20mm', height: '20mm', textAlign: 'center' }}>
+                    <img
+                      src={supplier.logoUrl}
+                      alt="Logo"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain'
+                      }}
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                )}
+              </td>
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                <h1
+                  style={{
+                    fontSize: '20pt',
+                    fontWeight: 'bold',
+                    margin: '0 0 2mm 0',
+                    color: '#000',
+                  }}
+                >
+                  {translateInCzech('invoice_title')}
+                </h1>
+                <div style={{ fontSize: '11pt' }}>
+                  {translateInCzech('invoice_number')}: {invoice.number}
+                </div>
+              </td>
+              <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'top' }}>
+                <div style={{ fontSize: '9pt' }}>
+                  <div style={{ marginBottom: '1mm' }}>
+                    <strong>{translateInCzech('issueDate')}:</strong> {invoice.issueDate}
+                  </div>
+                  {vatSettings?.enabled && (
+                    <div style={{ marginBottom: '1mm' }}>
+                      <strong>{translateInCzech('taxableDate')}:</strong> {invoice.duzpDate}
+                    </div>
+                  )}
+                  <div>
+                    <strong>{translateInCzech('dueDate')}:</strong> {invoice.issueDate}
+                  </div>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
 
-        <div className="flex justify-between items-end">
-          <div className="flex flex-col items-start">
-            {qrCodeDataUrl ? (
-              <>
-                <div className="w-24 h-24 border border-gray-300 bg-white p-1">
-                  <img src={qrCodeDataUrl} alt="QR platba" className="w-full h-full object-contain" />
+        {/* Dodavatel a Odběratel jako tabulka */}
+        <table
+          style={{
+            width: '100%',
+            marginBottom: '8mm',
+            borderCollapse: 'collapse',
+          }}
+        >
+          <tbody>
+            <tr>
+              <td
+                style={{
+                  width: '50%',
+                  verticalAlign: 'top',
+                  paddingRight: '5mm',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '7pt',
+                    color: '#666',
+                    marginBottom: '2mm',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {translateInCzech('supplier')}
                 </div>
-                <div className="text-xs text-gray-600 mt-1">{translateInCzech('qrPayment')}</div>
-              </>
-            ) : (<div className="w-24 h-24 text-xs flex items-center justify-center bg-gray-50"></div>)}
-          </div>
-          <div className="w-64 space-y-2">
-            <div className="flex justify-between">
-              <span>{translateInCzech('subtotal')}:</span>
-              <span>{subtotal.toFixed(2)} {translateInCzech('currency_czk')}</span>
-            </div>
-            {vatSettings.enabled && (
-              <div className="flex justify-between">
-                <span>{translateInCzech('vat_rate_display', { rate: vatSettings.rate })}:</span>
-                <span>{vatAmount.toFixed(2)} {translateInCzech('currency_czk')}</span>
-              </div>
-            )}
-            <div className="border-t pt-2 mt-2">
-              <div className="flex justify-between font-bold text-lg">
-                <span>{translateInCzech('totalToPay')}:</span>
-                <span>{total.toFixed(2)} {translateInCzech('currency_czk')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+                <div style={{ fontSize: '9pt', lineHeight: '1.3' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '1mm' }}>
+                    {supplier.name}
+                  </div>
+                  <div style={{ marginBottom: '1mm' }}>{supplier.address}</div>
+                  <div style={{ marginBottom: '2mm' }}>
+                    {supplier.zip} {supplier.city}
+                  </div>
+                  <div style={{ fontSize: '8pt' }}>
+                    <div style={{ marginBottom: '1mm' }}>
+                      {translateInCzech('ico')}: {supplier.ico}
+                    </div>
+                    {supplier.dic && (
+                      <div style={{ marginBottom: '1mm' }}>
+                        {translateInCzech('dic')}: {supplier.dic}
+                      </div>
+                    )}
+                    {vatSettings && !vatSettings.enabled && (
+                      <div style={{ fontSize: '8pt', fontWeight: 'bold' }}>
+                        {translateInCzech('notVatPayer')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </td>
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                <div
+                  style={{
+                    fontSize: '7pt',
+                    color: '#666',
+                    marginBottom: '2mm',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {translateInCzech('customer')}
+                </div>
+                <div style={{ fontSize: '9pt', lineHeight: '1.3' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '1mm' }}>
+                    {invoice.customer.name}
+                  </div>
+                  <div style={{ marginBottom: '1mm' }}>
+                    {invoice.customer.address}
+                  </div>
+                  <div style={{ marginBottom: '2mm' }}>
+                    {invoice.customer.zip} {invoice.customer.city}
+                  </div>
+                  <div style={{ fontSize: '8pt' }}>
+                    <div style={{ marginBottom: '1mm' }}>
+                      {translateInCzech('ico')}: {invoice.customer.ico}
+                    </div>
+                    {invoice.customer.dic && (
+                      <div style={{ marginBottom: '1mm' }}>
+                        {translateInCzech('dic')}: {invoice.customer.dic}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Platební údaje jako tabulka */}
+        <table
+          style={{
+            width: '100%',
+            marginBottom: '8mm',
+            borderCollapse: 'collapse',
+          }}
+        >
+          <tbody>
+            <tr>
+              <td style={{ width: '50%', verticalAlign: 'top', fontSize: '8pt' }}>
+                <div style={{ marginBottom: '1mm' }}>
+                  <strong>{translateInCzech('bankAccount')}:</strong> {supplier.bankAccount}
+                </div>
+                <div style={{ marginBottom: '1mm' }}>
+                  <strong>{translateInCzech('variableSymbol')}:</strong> {invoice.number.replace(/-/g, '')}
+                </div>
+                <div>
+                  <strong>{translateInCzech('paymentMethod')}:</strong> hotově
+                </div>
+              </td>
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                {/* Místo pro další platební info nebo prázdné */}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Tabulka položek */}
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '8pt',
+            border: '1px solid #000',
+            marginBottom: '5mm',
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: '#f0f0f0' }}>
+              <th
+                style={{
+                  textAlign: 'left',
+                  padding: '2mm',
+                  border: '1px solid #000',
+                  fontWeight: 'bold',
+                  width: '35%',
+                }}
+              >
+                {translateInCzech('th_description')}
+              </th>
+              <th
+                style={{
+                  textAlign: 'center',
+                  padding: '2mm',
+                  border: '1px solid #000',
+                  fontWeight: 'bold',
+                  width: '12%',
+                }}
+              >
+                {translateInCzech('th_quantity')}
+              </th>
+              <th
+                style={{
+                  textAlign: 'center',
+                  padding: '2mm',
+                  border: '1px solid #000',
+                  fontWeight: 'bold',
+                  width: '13%',
+                }}
+              >
+                {translateInCzech('th_unit')}
+              </th>
+              <th
+                style={{
+                  textAlign: 'right',
+                  padding: '2mm',
+                  border: '1px solid #000',
+                  fontWeight: 'bold',
+                  width: '20%',
+                }}
+              >
+                {translateInCzech('th_pricePerUnit')}
+              </th>
+              <th
+                style={{
+                  textAlign: 'right',
+                  padding: '2mm',
+                  border: '1px solid #000',
+                  fontWeight: 'bold',
+                  width: '20%',
+                }}
+              >
+                {translateInCzech('th_total')}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.items &&
+              invoice.items.map((item, index) => (
+                <tr key={item.id || index}>
+                  <td
+                    style={{
+                      padding: '2mm',
+                      border: '1px solid #000',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {item.description}
+                  </td>
+                  <td
+                    style={{
+                      padding: '2mm',
+                      border: '1px solid #000',
+                      textAlign: 'center',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {item.quantity}
+                  </td>
+                  <td
+                    style={{
+                      padding: '2mm',
+                      border: '1px solid #000',
+                      textAlign: 'center',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {item.unit}
+                  </td>
+                  <td
+                    style={{
+                      padding: '2mm',
+                      border: '1px solid #000',
+                      textAlign: 'right',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {Number(item.pricePerUnit || 0).toFixed(2)} {translateInCzech('currency_czk')}
+                  </td>
+                  <td
+                    style={{
+                      padding: '2mm',
+                      border: '1px solid #000',
+                      textAlign: 'right',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    {Number(item.totalPrice || 0).toFixed(2)} {translateInCzech('currency_czk')}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+
+        {/* Celková částka a QR kód jako tabulka */}
+        <table style={{ width: '100%', marginBottom: '8mm' }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '40%', verticalAlign: 'top' }}>
+                {/* QR kód jen pokud je bankovní převod a jsou všechny údaje */}
+                {supplier.bankAccount && total > 0 && supplier.paymentMethod !== 'hotově' && (
+                  qrCodeDataUrl ? (
+                    <div>
+                      <div style={{ width: '24mm', height: '24mm', border: '1px solid #ccc', padding: '1mm' }}>
+                        <img
+                          src={qrCodeDataUrl}
+                          alt="QR platba"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      </div>
+                      <div style={{ fontSize: '8pt', color: '#666', marginTop: '1mm' }}>
+                        {translateInCzech('qrPayment')}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ width: '24mm', height: '24mm' }}></div>
+                  )
+                )}
+              </td>
+              <td style={{ width: '60%', verticalAlign: 'top' }}>
+                <table style={{ width: '100%', fontSize: '9pt', marginLeft: 'auto', maxWidth: '60%' }}>
+                  <tbody>
+                    {vatSettings?.enabled && (
+                      <tr>
+                        <td style={{ padding: '0.5mm 0' }}>
+                          {translateInCzech('vat_rate_display', { rate: vatSettings.rate })}:
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '0.5mm 0' }}>
+                          {vatAmount.toFixed(2)} {translateInCzech('currency_czk')}
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td
+                        style={{
+                          padding: '1mm 0',
+                          borderTop: '1px solid #000',
+                          fontWeight: 'bold',
+                          fontSize: '10pt',
+                        }}
+                      >
+                        {translateInCzech('totalToPay')}:
+                      </td>
+                      <td
+                        style={{
+                          textAlign: 'right',
+                          padding: '1mm 0',
+                          borderTop: '1px solid #000',
+                          fontWeight: 'bold',
+                          fontSize: '10pt',
+                        }}
+                      >
+                        {total.toFixed(2)} {translateInCzech('currency_czk')}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   }
