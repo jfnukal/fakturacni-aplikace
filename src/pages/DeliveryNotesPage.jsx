@@ -140,9 +140,9 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
     const element = document.createElement('div');
     document.body.appendChild(element);
     const root = ReactDOM.createRoot(element);
-    root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} />);
+    root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} vatSettings={vatSettings} />);
     setTimeout(() => {
-      const opt = { margin: 3, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      const opt = { margin: 10, filename: `dodaci-list-${note.number}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
       html2pdf().from(element.firstChild).set(opt).save().then(() => { document.body.removeChild(element); });
     }, 500);
   };
@@ -155,7 +155,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
     const element = document.createElement('div');
     document.body.appendChild(element);
     const root = ReactDOM.createRoot(element);
-    root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} />);
+    root.render(<DeliveryNotePrintable note={note} supplier={supplier} showPrices={note.showPrices} vatSettings={vatSettings} />);
     setTimeout(async () => {
       try {
         const blob = await html2pdf().from(element.firstChild).output('blob');
@@ -201,6 +201,13 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
         <>
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('delivery_notes_page.title')}</h2>
+            <button
+              onClick={handleAddNew}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={16} />
+              <span>{t('delivery_notes_page.new_title')}</span>
+            </button>
           </div>
           <div className="bg-white border rounded-lg overflow-hidden">
             <table className="w-full">
