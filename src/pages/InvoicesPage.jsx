@@ -38,19 +38,20 @@ const generateNextDocumentNumber = (existingNumbers) => {
     const year = new Date().getFullYear();
     return `${year}-001`;
   }
-  
+
   const currentYear = new Date().getFullYear();
   const currentYearNumbers = existingNumbers
-    .filter(num => num && num.startsWith(currentYear.toString()))
-    .map(num => {
+    .filter((num) => num && num.startsWith(currentYear.toString()))
+    .map((num) => {
       const parts = num.split('-');
       return parts.length > 1 ? parseInt(parts[1], 10) : 0;
     })
-    .filter(num => !isNaN(num));
-  
-  const maxNumber = currentYearNumbers.length > 0 ? Math.max(...currentYearNumbers) : 0;
+    .filter((num) => !isNaN(num));
+
+  const maxNumber =
+    currentYearNumbers.length > 0 ? Math.max(...currentYearNumbers) : 0;
   const nextNumber = maxNumber + 1;
-  
+
   return `${currentYear}-${nextNumber.toString().padStart(3, '0')}`;
 };
 
@@ -99,6 +100,204 @@ function getNewInvoice() {
     status: 'draft',
   };
 }
+
+// Modální okno pro výběr dodacích listů
+const DeliveryNotesSelectionModal = ({ 
+  isOpen, 
+  onClose, 
+  deliveryNotes, 
+  onCreateInvoice,
+  calculateDlTotal,
+  t 
+}) => {
+  const [selectedDLs, setSelectedDLs] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDLs([]);
+    }
+  }, [isOpen]);
+
+  const handleCreateInvoice = () => {
+    if (selectedDLs.length === 0) {
+      alert('Prosím, vyberte alespoň jeden dodací list.');
+      return;
+    }
+
+    const notesToProcess = deliveryNotes.filter((note) =>
+      selectedDLs.includes(note.id)
+    );
+    
+    if (notesToProcess.length === 0) return;
+
+    const firstCustomer = notesToProcess[0].customer;
+
+    if (!notesToProcess.every((note) => note.customer?.id === firstCustomer?.id)) {
+      alert('Nelze vytvořit fakturu z dodacích listů pro různé odběratele.');
+      return;
+    }
+
+    onCreateInvoice(notesToProcess);
+    onClose();
+  };
+
+  const unInvoicedNotes = deliveryNotes.filter((note) => !note.invoiced);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden"
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold">Vybrat dodací listy k fakturaci</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6">
+          {unInvoicedNotes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="mb-2">Žádné nefakturované dodací listy</div>
+              <div className="text-sm">Všechny dodací listy již byly vyfakturovány</div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-white text-xs">i</span>
+                  </div>
+                  <div className="text-sm text-blue-800">
+                    <div className="font-medium mb-1">Jak to funguje:</div>
+                    <ul className="space-y-1 text-xs">
+                      <li>• Vyberte dodací listy, které chcete vyfakturovat</li>
+                      <li>• Všechny vybrané dodací listy musí patřit stejnému zákazníkovi</li>
+                      <li>• Z každého dodacího listu se vytvoří jedna položka faktury</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg max-h-96 overflow-y-auto">
+                <div className="bg-gray-50 px-4 py-3 border-b font-medium text-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-6"></div>
+                    <div className="w-32">Číslo DL</div>
+                    <div className="flex-1">Zákazník</div>
+                    <div className="w-24 text-right">Částka</div>
+                    <div className="w-20 text-center">Datum</div>
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-gray-200">
+                  {deliveryNotes.filter((note) => !note.invoiced).map((note) => {
+                    const { totalWithoutVat } = calculateDlTotal(note.items);
+                    const isSelected = selectedDLs.includes(note.id);
+                    
+                    return (
+                      <div 
+                        key={note.id} 
+                        className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                        onClick={() => {
+                          setSelectedDLs((prev) =>
+                            prev.includes(note.id) 
+                              ? prev.filter((id) => id !== note.id) 
+                              : [...prev, note.id]
+                          );
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div className="w-32 font-medium">{note.number}</div>
+                          <div className="flex-1 text-gray-700">{note.customer?.name}</div>
+                          <div className="w-24 text-right font-medium">
+                            {totalWithoutVat.toFixed(2)} Kč
+                          </div>
+                          <div className="w-20 text-center text-sm text-gray-500">
+                            {note.date}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selectedDLs.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <span className="font-medium">Vybráno:</span> {selectedDLs.length} dodací{selectedDLs.length === 1 ? ' list' : selectedDLs.length < 5 ? ' listy' : ' listů'}
+                    </div>
+                    <div className="text-sm font-medium">
+                      Celkem: {deliveryNotes
+                        .filter(note => selectedDLs.includes(note.id) && !note.invoiced)
+                        .reduce((sum, note) => sum + calculateDlTotal(note.items).totalWithoutVat, 0)
+                        .toFixed(2)} Kč
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <table style={{width: '100%', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb'}}>
+          <tr>
+            <td style={{padding: '24px', textAlign: 'right'}}>
+              <button
+                onClick={onClose}
+                style={{
+                  marginRight: '12px',
+                  padding: '8px 16px',
+                  color: '#374151',
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Zrušit
+              </button>
+              <button
+                onClick={handleCreateInvoice}
+                disabled={selectedDLs.length === 0}
+                style={{
+                  padding: '8px 24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: selectedDLs.length === 0 ? 'not-allowed' : 'pointer',
+                  backgroundColor: selectedDLs.length === 0 ? '#d1d5db' : '#2563eb',
+                  color: selectedDLs.length === 0 ? '#6b7280' : 'white'
+                }}
+              >
+                Vytvořit fakturu z vybraných
+              </button>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // --- Komponenta pro "..." menu s využitím Portálu ---
 const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
   const { t } = useTranslation();
@@ -110,16 +309,16 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
         onClose();
       }
     };
-    
+
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
         onClose();
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
@@ -143,15 +342,15 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
   const rect = targetElement.getBoundingClientRect();
   const menuWidth = 192; // w-48 = 192px
   const windowWidth = window.innerWidth;
-  
+
   // Vypočítáme pozici s ochranou před vytečením z obrazovky
   let leftPosition = rect.left + window.scrollX - 150;
-  
+
   // Pokud by menu vyteklo vlevo, posuneme ho doprava
   if (leftPosition < 10) {
     leftPosition = 10;
   }
-  
+
   // Pokud by menu vyteklo vpravo, posuneme ho vlevo
   if (leftPosition + menuWidth > windowWidth - 10) {
     leftPosition = windowWidth - menuWidth - 10;
@@ -203,14 +402,14 @@ const PreviewModal = ({ isOpen, onClose, children }) => {
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
-  
+
   return (
     <div
       onClick={onClose}
@@ -248,7 +447,9 @@ const StatusBadge = ({ status }) => {
   };
   return (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.draft}`}
+      className={`px-2 py-1 rounded-full text-xs font-medium ${
+        styles[status] || styles.draft
+      }`}
     >
       {labels[status] || labels.draft}
     </span>
@@ -261,7 +462,7 @@ const InvoicePreview = ({
   calculateTotals,
 }) => {
   const { t } = useTranslation();
-  
+
   if (!supplier || !vatSettings || !invoice) {
     return (
       <div className="text-center p-10">
@@ -269,25 +470,25 @@ const InvoicePreview = ({
       </div>
     );
   }
-  
+
   const { subtotal, vatAmount, total } = calculateTotals(invoice, vatSettings);
-  
+
   const generatePaymentQR = (invoice, supplier) => {
     const amount = total.toFixed(2);
     const vs = invoice.number.replace(/\D/g, '');
     const bankAccount = supplier.bankAccount || '';
-    
+
     if (!bankAccount || !amount || !vs) return null;
-    
+
     const paymentString = `SPD*1.0*ACC:${bankAccount.replace(
       '/',
       '-'
     )}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
-    
+
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
       paymentString
     )}`;
-    
+
     return (
       <div className="flex flex-col items-start">
         <div className="w-24 h-24 border border-gray-300 bg-white p-1">
@@ -304,7 +505,7 @@ const InvoicePreview = ({
       </div>
     );
   };
-  
+
   return (
     <div
       className="border rounded-lg p-6 bg-white"
@@ -425,19 +626,20 @@ const InvoicePreview = ({
             </tr>
           </thead>
           <tbody>
-            {invoice.items && invoice.items.map((item) => (
-              <tr key={item.id} className="border-t">
-                <td className="p-3">{item.description}</td>
-                <td className="p-3 text-center">{item.quantity}</td>
-                <td className="p-3 text-center">{item.unit}</td>
-                <td className="p-3 text-right">
-                  {Number(item.pricePerUnit).toFixed(2)} {t('currency_czk')}
-                </td>
-                <td className="p-3 text-right">
-                  {Number(item.totalPrice).toFixed(2)} {t('currency_czk')}
-                </td>
-              </tr>
-            ))}
+            {invoice.items &&
+              invoice.items.map((item) => (
+                <tr key={item.id} className="border-t">
+                  <td className="p-3">{item.description}</td>
+                  <td className="p-3 text-center">{item.quantity}</td>
+                  <td className="p-3 text-center">{item.unit}</td>
+                  <td className="p-3 text-right">
+                    {Number(item.pricePerUnit).toFixed(2)} {t('currency_czk')}
+                  </td>
+                  <td className="p-3 text-right">
+                    {Number(item.totalPrice).toFixed(2)} {t('currency_czk')}
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
@@ -488,11 +690,10 @@ const InvoicesPage = ({
   const [invoices, setInvoices] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [openMenu, setOpenMenu] = useState({ id: null, ref: null });
-  const [isSelectingDL, setIsSelectingDL] = useState(false);
-  const [selectedDLs, setSelectedDLs] = useState([]);
+  const [showDLModal, setShowDLModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  
+
   // Refs pro cleanup
   const pdfRootRef = useRef(null);
   const printRootRef = useRef(null);
@@ -512,18 +713,18 @@ const InvoicesPage = ({
 
   useEffect(() => {
     if (!currentUser) return;
-    
+
     const q = query(
       collection(db, 'invoices'),
       where('userId', '==', currentUser.uid),
       orderBy('number', 'desc')
     );
-    
+
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       try {
-        const invoicesData = querySnapshot.docs.map((doc) => ({ 
-          id: doc.id, 
-          ...doc.data() 
+        const invoicesData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
         }));
         setInvoices(invoicesData);
         setLoading(false);
@@ -532,7 +733,7 @@ const InvoicesPage = ({
         setLoading(false);
       }
     });
-    
+
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -541,7 +742,7 @@ const InvoicesPage = ({
       const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
       const newInv = getNewInvoice();
       newInv.number = generateNextDocumentNumber(allNumbers);
-      
+
       if (customer) {
         newInv.customer = {
           name: customer.name || '',
@@ -552,7 +753,7 @@ const InvoicesPage = ({
           dic: customer.dic || '',
         };
       }
-      
+
       setCurrentInvoice(newInv);
       setEditingInvoice(null);
       setCurrentView('create');
@@ -561,23 +762,36 @@ const InvoicesPage = ({
     }
   };
 
+  const calculateDlTotal = (items) => {
+    if (!items) return { totalWithoutVat: 0 };
+    return { 
+      totalWithoutVat: items.reduce((sum, item) => 
+        sum + (item.quantity * (parseFloat(String(item.price).replace(',', '.')) || 0)), 0
+      ) 
+    };
+  };
+
   const calculateTotals = (invoice, currentVatSettings) => {
     if (!invoice || !invoice.items || !Array.isArray(invoice.items)) {
       return { subtotal: 0, vatAmount: 0, total: 0 };
     }
-    
+
     const subtotal = invoice.items.reduce(
       (sum, item) => sum + (Number(item.totalPrice) || 0),
       0
     );
-    
-    const vatAmount =
-      currentVatSettings && currentVatSettings.enabled
-        ? (subtotal * (Number(currentVatSettings.rate) || 0)) / 100
-        : 0;
-        
+
+    let vatAmount = 0;
+    if (currentVatSettings?.enabled) {
+      vatAmount = invoice.items.reduce((sum, item) => {
+        const itemTotal = Number(item.totalPrice) || 0;
+        const itemVatRate = item.vatRate || 21;
+        return sum + (itemTotal * itemVatRate) / 100;
+      }, 0);
+    }
+
     const total = subtotal + vatAmount;
-    
+
     return { subtotal, vatAmount, total };
   };
 
@@ -586,7 +800,7 @@ const InvoicesPage = ({
       console.error('No current user');
       return;
     }
-    
+
     try {
       const { total } = calculateTotals(invoiceData, vatSettings);
       const invoiceToSave = {
@@ -596,16 +810,16 @@ const InvoicesPage = ({
         userId: currentUser.uid,
         updatedAt: new Date(),
       };
-      
+
       delete invoiceToSave.id;
-      
+
       if (editingInvoice) {
         await updateDoc(doc(db, 'invoices', editingInvoice.id), invoiceToSave);
       } else {
         invoiceToSave.createdAt = new Date();
         await addDoc(collection(db, 'invoices'), invoiceToSave);
       }
-      
+
       goToList();
     } catch (error) {
       console.error('Error saving invoice:', error);
@@ -617,6 +831,40 @@ const InvoicesPage = ({
       setShowConfirmModal(true);
     } else {
       saveInvoiceFlow(currentInvoice);
+    }
+  };
+
+  // Nová funkce pro vytvoření faktury z dodacích listů - OPRAVENO
+  const handleCreateInvoiceFromDL = (selectedDeliveryNotes) => {
+    try {
+      const firstCustomer = selectedDeliveryNotes[0].customer;
+
+      const newItems = selectedDeliveryNotes.map((note) => {
+        const { totalWithoutVat } = calculateDlTotal(note.items);
+        return {
+          id: Date.now() + Math.random(),
+          description: `Dodací list č. ${note.number}`,
+          quantity: 1,
+          unit: 'ks',
+          pricePerUnit: totalWithoutVat,
+          totalPrice: totalWithoutVat,
+          vatRate: vatSettings?.rates?.[vatSettings.rates.length - 1] || 21,
+        };
+      });
+
+      const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
+      const newInvoice = getNewInvoice();
+      newInvoice.number = generateNextDocumentNumber(allNumbers);
+      newInvoice.customer = firstCustomer;
+      newInvoice.items = newItems;
+      newInvoice.dueDate = calculateDueDate(newInvoice.issueDate, newInvoice.dueDays || 14);
+
+      setCurrentInvoice(newInvoice);
+      setEditingInvoice(null);
+      setCurrentView('create');
+      setShowPreviewModal(false); // Zajistí, že se nezobrazí preview modal
+    } catch (error) {
+      console.error('Error creating invoice from delivery notes:', error);
     }
   };
 
@@ -642,7 +890,7 @@ const InvoicesPage = ({
         ),
         status: 'draft',
       };
-      
+
       delete newInvoice.id;
       setCurrentInvoice(newInvoice);
       setEditingInvoice(null);
@@ -669,11 +917,12 @@ const InvoicesPage = ({
     description: '',
     pricePerUnit: 0,
     totalPrice: 0,
+    vatRate: vatSettings?.rates?.[vatSettings.rates.length - 1] || 21, // nejvyšší dostupná sazba jako default
   });
 
   const addItemBelow = (currentItemId) => {
     if (!currentInvoice) return;
-    
+
     const newItems = [];
     currentInvoice.items.forEach((item) => {
       newItems.push(item);
@@ -686,7 +935,7 @@ const InvoicesPage = ({
 
   const removeItem = (id) => {
     if (!currentInvoice || currentInvoice.items.length <= 1) return;
-    
+
     setCurrentInvoice({
       ...currentInvoice,
       items: currentInvoice.items.filter((item) => item.id !== id),
@@ -695,7 +944,7 @@ const InvoicesPage = ({
 
   const updateItem = (id, field, value) => {
     if (!currentInvoice) return;
-    
+
     setCurrentInvoice({
       ...currentInvoice,
       items: currentInvoice.items.map((item) => {
@@ -715,16 +964,16 @@ const InvoicesPage = ({
 
   const calculateDueDate = (issueDate, days) => {
     if (!issueDate || !days) return '';
-    
+
     try {
       const dateParts = issueDate.split('.').map((part) => parseInt(part, 10));
       if (dateParts.length !== 3) return '';
-      
+
       const date = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
       if (isNaN(date.getTime())) return '';
-      
+
       date.setDate(date.getDate() + parseInt(days, 10));
-      
+
       return date.toLocaleDateString('cs-CZ', {
         day: '2-digit',
         month: '2-digit',
@@ -750,15 +999,15 @@ const InvoicesPage = ({
     setCurrentView('create');
   };
 
-const handleDownloadPdf = (invoice) => {
+  const handleDownloadPdf = (invoice) => {
     const element = document.createElement('div');
     element.style.position = 'absolute';
     element.style.left = '-9999px';
     document.body.appendChild(element);
-    
+
     const root = ReactDOM.createRoot(element);
     pdfRootRef.current = root;
-    
+
     root.render(
       <InvoicePrintable
         invoice={invoice}
@@ -766,7 +1015,7 @@ const handleDownloadPdf = (invoice) => {
         vatSettings={vatSettings}
       />
     );
-    
+
     setTimeout(() => {
       const opt = {
         margin: 10,
@@ -775,7 +1024,7 @@ const handleDownloadPdf = (invoice) => {
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       };
-      
+
       html2pdf()
         .from(element.firstChild)
         .set(opt)
@@ -798,10 +1047,10 @@ const handleDownloadPdf = (invoice) => {
     printContainer.style.position = 'absolute';
     printContainer.style.left = '-9999px';
     document.body.appendChild(printContainer);
-    
+
     const root = ReactDOM.createRoot(printContainer);
     printRootRef.current = root;
-    
+
     root.render(
       <InvoicePrintable
         invoice={invoice}
@@ -809,7 +1058,7 @@ const handleDownloadPdf = (invoice) => {
         vatSettings={vatSettings}
       />
     );
-    
+
     setTimeout(() => {
       try {
         window.print();
@@ -826,7 +1075,7 @@ const handleDownloadPdf = (invoice) => {
         await navigator.share({
           title: `Faktura ${invoice.number}`,
           text: `Faktura pro ${invoice.customer.name}`,
-          url: window.location.href
+          url: window.location.href,
         });
       } else {
         await navigator.clipboard.writeText(window.location.href);
@@ -856,7 +1105,7 @@ const handleDownloadPdf = (invoice) => {
         handleDownloadPdf(invoice);
         break;
       case 'share':
-        handleShare(invoice); 
+        handleShare(invoice);
         break;
       case 'delete':
         deleteInvoice(invoice.id);
@@ -870,11 +1119,11 @@ const handleDownloadPdf = (invoice) => {
   const MoreActionsButton = ({ invoice }) => {
     const buttonRef = useRef(null);
     const isMenuOpen = openMenu.id === invoice.id;
-  
+
     const handleMenuToggle = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       setTimeout(() => {
         setOpenMenu((prev) =>
           prev.id === invoice.id
@@ -883,14 +1132,14 @@ const handleDownloadPdf = (invoice) => {
         );
       }, 0);
     };
-  
+
     return (
       <div className="relative">
         <button
           ref={buttonRef}
-          onTouchStart={(e) => e.stopPropagation()}  
+          onTouchStart={(e) => e.stopPropagation()}
           onClick={handleMenuToggle}
-          className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors" 
+          className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
           title="Další akce"
         >
           <MoreVertical size={20} />
@@ -932,7 +1181,10 @@ const handleDownloadPdf = (invoice) => {
             alert('Číslo faktury nemůže být prázdné');
             return;
           }
-          const updatedInvoice = { ...currentInvoice, number: newNumber.trim() };
+          const updatedInvoice = {
+            ...currentInvoice,
+            number: newNumber.trim(),
+          };
           setCurrentInvoice(updatedInvoice);
           saveInvoiceFlow(updatedInvoice);
           setShowConfirmModal(false);
@@ -954,12 +1206,21 @@ const handleDownloadPdf = (invoice) => {
 
   return (
     <>
+      <DeliveryNotesSelectionModal
+        isOpen={showDLModal}
+        onClose={() => setShowDLModal(false)}
+        deliveryNotes={deliveryNotes}
+        onCreateInvoice={handleCreateInvoiceFromDL}
+        calculateDlTotal={calculateDlTotal}
+        t={t}
+      />
+
       <ConfirmModal
         isOpen={showConfirmModal}
         config={modalConfig}
         onClose={() => setShowConfirmModal(false)}
       />
-      
+
       {currentInvoice && (
         <PreviewModal
           isOpen={showPreviewModal}
@@ -978,26 +1239,34 @@ const handleDownloadPdf = (invoice) => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{t('invoices_page.title')}</h2>
-            <button
-              onClick={() => handleAddNew()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={16} />
-              <span>{t('invoices_page.new_title')}</span>
-            </button>
+            <div className="flex gap-2">
+             <button
+                onClick={() => setShowDLModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Plus size={16} />
+                <span>Vytvořit z DL</span>
+              </button>
+              <button
+                onClick={() => handleAddNew()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={16} />
+                <span>{t('invoices_page.new_title')}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white border rounded-lg overflow-visible">
-            <div className="hidden md:grid grid-cols-6 p-4 bg-gray-50 font-medium">
+          <div className="bg-white border rounded-lg">
+            <div className="hidden md:grid grid-cols-5 p-4 bg-gray-50 font-medium">
               <div className="col-span-2">
                 {t('invoices_page.table.customer')}
               </div>
-              <div>{t('invoices_page.table.number')}</div>
+              <div className="text-center">
+                {t('invoices_page.table.number')}
+              </div>
               <div className="text-right">
                 {t('invoices_page.table.amount')}
-              </div>
-              <div className="text-center">
-                {t('invoices_page.table.status')}
               </div>
               <div className="text-right pr-4">
                 {t('invoices_page.table.actions')}
@@ -1029,22 +1298,36 @@ const handleDownloadPdf = (invoice) => {
                   <div
                     key={invoice.id}
                     onClick={() => editInvoice(invoice)}
-                    className="md:grid md:grid-cols-6 items-center p-4 hover:bg-gray-50 cursor-pointer block transition-colors"
+                    className="md:grid md:grid-cols-5 items-center p-4 hover:bg-gray-50 cursor-pointer block transition-colors"
                   >
                     <div className="md:col-span-2 mb-2 md:mb-0">
-                      <div className="font-bold">{invoice.customer?.name || 'Bez názvu'}</div>
+                      <div className="font-bold">{invoice.customer.name}</div>
                       <div className="text-sm text-gray-500 md:hidden">
                         {invoice.number}
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500 hidden md:block">
+                    <div className="text-sm text-gray-500 hidden md:block text-center">
                       {invoice.number}
                     </div>
                     <div className="text-right font-medium">
-                      {(invoice.total || 0).toFixed(2)} {t('currency_czk')}
-                    </div>
-                    <div className="text-center">
-                      <StatusBadge status={invoice.status || 'draft'} />
+                      {(() => {
+                        const { subtotal, total } = calculateTotals(
+                          invoice,
+                          vatSettings
+                        );
+                        return (
+                          <>
+                            {subtotal.toFixed(2)} {t('currency_czk')}
+                            {vatSettings?.enabled && (
+                              <div className="text-xs text-gray-500">
+                                {t('delivery_notes_page.table.with_vat', {
+                                  amount: total.toFixed(2),
+                                })}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div
                       className="md:text-right"
@@ -1059,7 +1342,7 @@ const handleDownloadPdf = (invoice) => {
                             e.stopPropagation();
                             handleAction('edit', invoice);
                           }}
-                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+                          className="p-2 min-h-[44px] min-w-[44px] text-purple-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
                           title={t('common.edit')}
                         >
                           <Edit size={20} />
@@ -1071,7 +1354,7 @@ const handleDownloadPdf = (invoice) => {
                             e.stopPropagation();
                             handleAction('clone', invoice);
                           }}
-                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+                          className="p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
                           title={t('common.clone')}
                         >
                           <Copy size={20} />
@@ -1365,114 +1648,133 @@ const handleDownloadPdf = (invoice) => {
                   <div className="w-24 text-right">
                     {t('invoices_page.form.item_price')}
                   </div>
+                  {vatSettings?.enabled && (
+                    <div className="w-16 text-center">DPH</div>
+                  )}
                   <div className="w-28 text-right">{t('th_total')}</div>
                   <div className="w-16 text-center"></div>
                 </div>
 
-                {currentInvoice.items && currentInvoice.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
-                  >
-                    <div className="w-full md:flex-grow order-1">
-                      <label className="text-xs font-medium text-gray-600 md:hidden">
-                        {t('invoices_page.form.item_description')}
-                      </label>
-                      <input
-                        type="text"
-                        value={item.description || ''}
-                        onChange={(e) =>
-                          updateItem(item.id, 'description', e.target.value)
-                        }
-                        className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder={t('invoices_page.form.item_description')}
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-20 order-2">
-                      <label className="text-xs font-medium text-gray-600 md:hidden">
-                        {t('invoices_page.form.item_quantity')}
-                      </label>
-                      <input
-                        type="number"
-                        value={item.quantity || ''}
-                        onChange={(e) =>
-                          updateItem(
-                            item.id,
-                            'quantity',
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="1"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-16 order-3">
-                      <label className="text-xs font-medium text-gray-600 md:hidden">
-                        {t('invoices_page.form.item_unit')}
-                      </label>
-                      <input
-                        type="text"
-                        value={item.unit || ''}
-                        onChange={(e) =>
-                          updateItem(item.id, 'unit', e.target.value)
-                        }
-                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="ks"
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-24 order-4">
-                      <label className="text-xs font-medium text-gray-600 md:hidden">
-                        {t('invoices_page.form.item_price')}
-                      </label>
-                      <input
-                        type="number"
-                        value={item.pricePerUnit || ''}
-                        onChange={(e) =>
-                          updateItem(
-                            item.id,
-                            'pricePerUnit',
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="w-1/2 md:w-28 order-5">
-                      <label className="text-xs font-medium text-gray-600 md:hidden">
-                        {t('th_total')}
-                      </label>
-                      <input
-                        type="text"
-                        value={Number(item.totalPrice || 0).toFixed(2)}
-                        readOnly
-                        className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
-                      />
-                    </div>
-                    <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6">
-                      <button
-                        onClick={() => addItemBelow(item.id)}
-                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                        title="Přidat řádek pod"
-                      >
-                        <PlusCircle size={18} />
-                      </button>
-                      {currentInvoice.items.length > 1 && (
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                          title={t('common.delete')}
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                {currentInvoice.items &&
+                  currentInvoice.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
+                    >
+                      <div className="w-full md:flex-grow order-1">
+                        <label className="text-xs font-medium text-gray-600 md:hidden">
+                          {t('invoices_page.form.item_description')}
+                        </label>
+                        <input
+                          type="text"
+                          value={item.description || ''}
+                          onChange={(e) =>
+                            updateItem(item.id, 'description', e.target.value)
+                          }
+                          className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder={t('invoices_page.form.item_description')}
+                        />
+                      </div>
+                      <div className="w-1/3 md:w-20 order-2">
+                        <label className="text-xs font-medium text-gray-600 md:hidden">
+                          {t('invoices_page.form.item_quantity')}
+                        </label>
+                        <input
+                          type="number"
+                          value={item.quantity || ''}
+                          onChange={(e) =>
+                            updateItem(
+                              item.id,
+                              'quantity',
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="1"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="w-1/3 md:w-16 order-3">
+                        <label className="text-xs font-medium text-gray-600 md:hidden">
+                          {t('invoices_page.form.item_unit')}
+                        </label>
+                        <input
+                          type="text"
+                          value={item.unit || ''}
+                          onChange={(e) =>
+                            updateItem(item.id, 'unit', e.target.value)
+                          }
+                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="ks"
+                        />
+                      </div>
+                      <div className="w-1/3 md:w-24 order-4">
+                        <label className="text-xs font-medium text-gray-600 md:hidden">
+                          {t('invoices_page.form.item_price')}
+                        </label>
+                        <input
+                          type="number"
+                          value={item.pricePerUnit || ''}
+                          onChange={(e) =>
+                            updateItem(
+                              item.id,
+                              'pricePerUnit',
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="0.00"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      {vatSettings?.enabled && (
+                        <div className="w-1/4 order-4-5" style={{width: '70px'}} >
+                          <label className="text-xs font-medium text-gray-600 md:hidden">DPH</label>
+                          <select
+                            value={item.vatRate || 21}
+                            onChange={(e) => updateItem(item.id, 'vatRate', parseInt(e.target.value))}
+                            className="w-full -px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            {(vatSettings.rates || [21]).map(rate => (
+                              <option key={rate} value={rate}>{rate}%</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
+
+                      <div className="w-1/2 md:w-28 order-6">
+                        <label className="text-xs font-medium text-gray-600 md:hidden">
+                          {t('th_total')}
+                        </label>
+                        <input
+                          type="text"
+                          value={Number(item.totalPrice || 0).toFixed(2)}
+                          readOnly
+                          className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
+                        />
+                      </div>
+                      <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6">
+                        <button
+                          onClick={() => addItemBelow(item.id)}
+                          className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                          title="Přidat řádek pod"
+                        >
+                          <PlusCircle size={18} />
+                        </button>
+                        {currentInvoice.items.length > 1 && (
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                            title={t('common.delete')}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
