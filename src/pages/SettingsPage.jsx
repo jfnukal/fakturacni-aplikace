@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Upload, Save, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IMaskInput } from 'react-imask';
+import DeliveryNotesImportTool from '../components/DeliveryNotesImportTool';
 
 // --- Funkce pro validaci českého čísla účtu ---
 const validateCzechBankAccount = (accountString) => {
@@ -34,11 +35,11 @@ const validateCzechBankAccount = (accountString) => {
 };
 // ----------------------------------------------------
 
-const SettingsPage = () => {
+const SettingsPage = ({ currentUser, savedCustomers, products, deliveryNotes }) => {
   const { t } = useTranslation();
-  const { currentUser } = useAuth();
+  // const { currentUser } = useAuth();
   const [supplier, setSupplier] = useState({ name: '', address: '', zip: '', city: '', ico: '', dic: '', bankAccount: '', paymentMethod: 'Převodem', logoUrl: '' });
-  const [vatSettings, setVatSettings] = useState({ enabled: false, rate: 21 });
+  const [vatSettings, setVatSettings] = useState({ enabled: false, rate: 21, rates: [21] });
   const [logoPreview, setLogoPreview] = useState('');
   const fileInputRef = useRef(null);
   const [bankAccountError, setBankAccountError] = useState('');
@@ -183,10 +184,40 @@ const SettingsPage = () => {
           </div>
 
           <div className="md:col-span-3 flex items-end pb-1">
-             <label className="flex items-center gap-3 w-full">
+          <div className="space-y-3">
+              <label className="flex items-center gap-3 w-full">
                 <input type="checkbox" checked={vatSettings.enabled} onChange={(e) => setVatSettings({ ...vatSettings, enabled: e.target.checked })} className="w-4 h-4" />
                 <span>{t('vatPayer')}</span>
               </label>
+              
+              {vatSettings.enabled && (
+                <div className="pl-7 space-y-2">
+                  <div className="text-sm font-medium text-gray-700">DPH sazby:</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[0, 12, 21].map(rate => (
+                      <label key={rate} className="flex items-center gap-1 text-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={(vatSettings.rates || [21]).includes(rate)}
+                          onChange={(e) => {
+                            const currentRates = vatSettings.rates || [21];
+                            const newRates = e.target.checked 
+                              ? [...currentRates, rate].sort((a,b) => a-b)
+                              : currentRates.filter(r => r !== rate);
+                            setVatSettings({ ...vatSettings, rates: newRates.length > 0 ? newRates : [21] });
+                          }}
+                          className="w-3 h-3" 
+                        />
+                        <span>{rate}%</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Standardní sazby: 0% (bez DPH), 12% (snížená), 21% (základní)
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -203,6 +234,18 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Import dodacích listů */}
+        <div className="mt-8">
+          <DeliveryNotesImportTool 
+            currentUser={currentUser}
+            savedCustomers={savedCustomers || []}
+            products={products || []}
+            onImportComplete={(count) => {
+              alert(`Úspěšně importováno ${count} dodacích listů!`);
+            }}
+          />
+        </div>
 
       <div className="mt-4">
         <button onClick={saveSettings} className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"><Save size={16} /> {t('saveSettings')}</button>
