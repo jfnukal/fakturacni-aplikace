@@ -1461,6 +1461,18 @@ const InvoicesPage = ({
                             <Copy size={16} />
                             Kopie
                           </button>
+                           <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('delete', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.delete')}
+                          >
+                            <Copy size={16} />
+                            Smazat
+                          </button>
                           {/* <MoreActionsButton invoice={invoice} /> */}
                         </div>
                       </div>
