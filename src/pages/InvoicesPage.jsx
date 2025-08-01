@@ -1327,111 +1327,207 @@ const InvoicesPage = ({
             </div>
 
             <div className="divide-y divide-gray-200">
-              {invoices.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <div className="mb-4">
-                    <Edit size={48} className="mx-auto text-gray-300" />
-                  </div>
-                  <div className="text-lg font-medium mb-2">
-                    {t('invoices_page.empty.title')}
-                  </div>
-                  <div className="text-sm">
-                    {t('invoices_page.empty.subtitle')}
-                  </div>
-                  <button
-                    onClick={() => handleAddNew()}
-                    className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus size={16} />
-                    <span>{t('invoices_page.new_title')}</span>
-                  </button>
+  {invoices.length === 0 ? (
+    <div className="p-8 text-center text-gray-500">
+      <div className="mb-4">
+        <Edit size={48} className="mx-auto text-gray-300" />
+      </div>
+      <div className="text-lg font-medium mb-2">
+        {t('invoices_page.empty.title')}
+      </div>
+      <div className="text-sm">
+        {t('invoices_page.empty.subtitle')}
+      </div>
+      <button
+        onClick={() => handleAddNew()}
+        className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+      >
+        <Plus size={16} />
+        <span>{t('invoices_page.new_title')}</span>
+      </button>
+    </div>
+  ) : (
+    invoices.map((invoice) => (
+      <div key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50">
+        {/* Mobile Layout */}
+        <div className="block md:hidden p-4">
+          <div className="space-y-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-semibold text-lg">{invoice.number}</div>
+                <div className="text-gray-600 text-sm">{invoice.customer?.name || 'Bez odběratele'}</div>
+                <div className="text-gray-500 text-xs">
+                  {invoice.issueDate} | Splatnost: {invoice.dueDate}
                 </div>
-              ) : (
-                invoices.map((invoice) => (
-                  <div
-                    key={invoice.id}
-                    onClick={() => editInvoice(invoice)}
-                    className="md:grid md:grid-cols-5 items-center p-4 hover:bg-gray-50 cursor-pointer block transition-colors"
-                  >
-                    <div className="md:col-span-2 mb-2 md:mb-0">
-                      <div className="font-bold">{invoice.customer.name}</div>
-                      <div className="text-sm text-gray-500 md:hidden">
-                        {invoice.number}
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-500 hidden md:block text-center">
-                      {invoice.number}
-                    </div>
-                    <div className="text-right font-medium">
-                      {(() => {
-                        const { subtotal, total } = calculateTotals(
-                          invoice,
-                          vatSettings
-                        );
-                        return (
-                          <>
-                            {subtotal.toFixed(2)} {t('currency_czk')}
-                            {vatSettings?.enabled && (
-                              <div className="text-xs text-gray-500">
-                                {t('delivery_notes_page.table.with_vat', {
-                                  amount: total.toFixed(2),
-                                })}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                    <div
-                      className="md:text-right"
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex gap-1 justify-end mt-2 md:mt-0">
-                        <button
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleAction('edit', invoice);
-                          }}
-                          className="p-2 min-h-[44px] min-w-[44px] text-purple-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
-                          title={t('common.edit')}
-                        >
-                          <Edit size={20} />
-                        </button>
-                        <button
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleAction('clone', invoice);
-                          }}
-                          className="p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
-                          title={t('common.clone')}
-                        >
-                          <Copy size={20} />
-                        </button>
-                        <button
-                          onTouchStart={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleAction('print', invoice);
-                          }}
-                          className="p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
-                          title={t('common.print')}
-                        >
-                          <Printer size={20} />
-                        </button>
-                        <MoreActionsButton invoice={invoice} />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+              </div>
+              <div className="text-right">
+                {(() => {
+                  const { subtotal, total } = calculateTotals(invoice, vatSettings);
+                  return (
+                    <>
+                      <div className="font-medium text-lg">{subtotal.toFixed(2)} Kč</div>
+                      {vatSettings?.enabled && (
+                        <div className="text-xs text-gray-500">
+                          s DPH: {total.toFixed(2)} Kč
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('print', invoice);
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm font-medium transition-colors"
+                title={t('common.print')}
+              >
+                <Printer size={16} />
+                Tisk
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('download', invoice);
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm font-medium transition-colors"
+                title={t('common.download_pdf')}
+              >
+                <Download size={16} />
+                PDF
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('edit', invoice);
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-sm font-medium transition-colors"
+                title={t('common.edit')}
+              >
+                <Edit size={16} />
+                Upravit
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('clone', invoice);
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-sm font-medium transition-colors"
+                title={t('common.clone')}
+              >
+                <Copy size={16} />
+                Kopie
+              </button>
+              <MoreActionsButton invoice={invoice} />
             </div>
           </div>
+        </div>
+        
+        {/* Desktop Layout */}
+        <div
+          onClick={() => editInvoice(invoice)}
+          className="hidden md:grid md:grid-cols-5 items-center p-4 cursor-pointer transition-colors"
+        >
+          <div className="md:col-span-2">
+            <div className="font-bold">{invoice.customer.name}</div>
+          </div>
+          <div className="text-sm text-gray-500 text-center">
+            {invoice.number}
+          </div>
+          <div className="text-right font-medium">
+            {(() => {
+              const { subtotal, total } = calculateTotals(invoice, vatSettings);
+              return (
+                <>
+                  {subtotal.toFixed(2)} {t('currency_czk')}
+                  {vatSettings?.enabled && (
+                    <div className="text-xs text-gray-500">
+                      {t('delivery_notes_page.table.with_vat', {
+                        amount: total.toFixed(2),
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+          <div
+            className="text-right"
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex gap-1 justify-center">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('print', invoice);
+                }}
+                className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                title={t('common.print')}
+              >
+                <Printer size={18} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('download', invoice);
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title={t('common.download_pdf')}
+              >
+                <Download size={18} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('view', invoice);
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title={t('common.view')}
+              >
+                <Eye size={18} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('clone', invoice);
+                }}
+                className="p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors"
+                title={t('common.clone')}
+              >
+                <Copy size={18} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAction('edit', invoice);
+                }}
+                className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors"
+                title={t('common.edit')}
+              >
+                <Edit size={18} />
+              </button>
+              <MoreActionsButton invoice={invoice} />
+            </div>
+          </div>
+        </div>
+      </div>
+    ))
+  )}
+</div>
+  </div>
         </div>
       )}
 
@@ -1738,154 +1834,163 @@ const InvoicesPage = ({
                 {t('invoices_page.form.items')}
               </h3>
               <div className="space-y-3">
-              <div className="hidden md:flex gap-2 text-sm font-medium text-gray-600 px-1">
+              <div className="hidden md:grid gap-2 text-sm font-medium text-gray-600 px-1" style={{
+                gridTemplateColumns: vatSettings?.enabled 
+                  ? '60px 1fr 80px 60px 100px 120px 80px' 
+                  : '1fr 80px 60px 100px 120px 80px'
+              }}>
                 {vatSettings?.enabled && (
-                  <div className="w-16 text-center">DPH %</div>
+                  <div className="text-center">DPH %</div>
                 )}
-                <div className="flex-grow">
+                <div className="text-left">
                   {t('invoices_page.form.item_description')}
                 </div>
-                <div className="w-20 text-center">
+                <div className="text-center">
                   {t('invoices_page.form.item_quantity')}
                 </div>
-                <div className="w-16 text-center">
+                <div className="text-center">
                   {t('invoices_page.form.item_unit')}
                 </div>
-                <div className="w-24 text-right">
+                <div className="text-right">
                   {t('invoices_page.form.item_price')}
                 </div>
-                <div className="w-28 text-right">{t('th_total')}</div>
-                <div className="w-16 text-center"></div>
+                <div className="text-right">{t('th_total')}</div>
+                <div className="text-center"></div>
               </div>
 
                 {currentInvoice.items &&
                   currentInvoice.items.map((item) => (
                     <div
-  key={item.id}
-  className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
->
-  {vatSettings?.enabled && (
-    <div className="w-1/4 md:w-16 order-1">
-      <label className="text-xs font-medium text-gray-600 md:hidden">
-        DPH
-      </label>
-      <select
-        value={item.vatRate || 21}
-        onChange={(e) =>
-          updateItem(
-            item.id,
-            'vatRate',
-            parseInt(e.target.value)
-          )
-        }
-        className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-      >
-        {(vatSettings.rates || [21]).map((rate) => (
-          <option key={rate} value={rate}>
-            {rate}%
-          </option>
-        ))}
-      </select>
-    </div>
-  )}
-  <div className={`w-full ${vatSettings?.enabled ? 'md:flex-grow' : 'md:flex-grow'} order-2`}>
-    <label className="text-xs font-medium text-gray-600 md:hidden">
-      {t('invoices_page.form.item_description')}
-    </label>
-    <input
-      type="text"
-      value={item.description || ''}
-      onChange={(e) =>
-        updateItem(item.id, 'description', e.target.value)
-      }
-      className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-      placeholder={t('invoices_page.form.item_description')}
-    />
-  </div>
-  <div className="w-1/3 md:w-20 order-3">
-    <label className="text-xs font-medium text-gray-600 md:hidden">
-      {t('invoices_page.form.item_quantity')}
-    </label>
-    <input
-      type="number"
-      value={item.quantity || ''}
-      onChange={(e) =>
-        updateItem(
-          item.id,
-          'quantity',
-          parseFloat(e.target.value) || 0
-        )
-      }
-      className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-      placeholder="1"
-      min="0"
-      step="0.01"
-    />
-  </div>
-  <div className="w-1/3 md:w-16 order-4">
-    <label className="text-xs font-medium text-gray-600 md:hidden">
-      {t('invoices_page.form.item_unit')}
-    </label>
-    <input
-      type="text"
-      value={item.unit || ''}
-      onChange={(e) =>
-        updateItem(item.id, 'unit', e.target.value)
-      }
-      className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-      placeholder="ks"
-    />
-  </div>
-  <div className="w-1/3 md:w-24 order-5">
-    <label className="text-xs font-medium text-gray-600 md:hidden">
-      {t('invoices_page.form.item_price')}
-    </label>
-    <input
-      type="number"
-      value={item.pricePerUnit || ''}
-      onChange={(e) =>
-        updateItem(
-          item.id,
-          'pricePerUnit',
-          parseFloat(e.target.value) || 0
-        )
-      }
-      className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-      placeholder="0.00"
-      min="0"
-      step="0.01"
-    />
-  </div>
-  <div className="w-1/2 md:w-28 order-6">
-    <label className="text-xs font-medium text-gray-600 md:hidden">
-      {t('th_total')}
-    </label>
-    <input
-      type="text"
-      value={Number(item.totalPrice || 0).toFixed(2)}
-      readOnly
-      className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
-    />
-  </div>
-  <div className="w-1/2 md:w-16 flex justify-end gap-1 order-7">
-    <button
-      onClick={() => addItemBelow(item.id)}
-      className="p-1 text-green-600 hover:text-green-800 transition-colors"
-      title="Přidat řádek pod"
-    >
-      <PlusCircle size={18} />
-    </button>
-    {currentInvoice.items.length > 1 && (
-      <button
-        onClick={() => removeItem(item.id)}
-        className="p-1 text-red-600 hover:text-red-800 transition-colors"
-        title={t('common.delete')}
-      >
-        <Trash2 size={18} />
-      </button>
-    )}
-  </div>
-</div>
+                    key={item.id}
+                    className="md:grid md:gap-2 md:items-center bg-white p-3 rounded border flex flex-wrap gap-2"
+                    style={{
+                      gridTemplateColumns: vatSettings?.enabled 
+                        ? '60px 1fr 80px 60px 100px 120px 80px' 
+                        : '1fr 80px 60px 100px 120px 80px'
+                    }}
+                  >
+                    {vatSettings?.enabled && (
+                      <div className="w-1/4 md:w-auto order-1">
+                        <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                          DPH
+                        </label>
+                        <select
+                          value={item.vatRate || 21}
+                          onChange={(e) =>
+                            updateItem(
+                              item.id,
+                              'vatRate',
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {(vatSettings.rates || [21]).map((rate) => (
+                            <option key={rate} value={rate}>
+                              {rate}%
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="w-full md:w-auto order-2">
+                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                        {t('invoices_page.form.item_description')}
+                      </label>
+                      <input
+                        type="text"
+                        value={item.description || ''}
+                        onChange={(e) =>
+                          updateItem(item.id, 'description', e.target.value)
+                        }
+                        className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder={t('invoices_page.form.item_description')}
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-auto order-3">
+                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                        {t('invoices_page.form.item_quantity')}
+                      </label>
+                      <input
+                        type="number"
+                        value={item.quantity || ''}
+                        onChange={(e) =>
+                          updateItem(
+                            item.id,
+                            'quantity',
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="1"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-auto order-4">
+                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                        {t('invoices_page.form.item_unit')}
+                      </label>
+                      <input
+                        type="text"
+                        value={item.unit || ''}
+                        onChange={(e) =>
+                          updateItem(item.id, 'unit', e.target.value)
+                        }
+                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="ks"
+                      />
+                    </div>
+                    <div className="w-1/3 md:w-auto order-5">
+                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                        {t('invoices_page.form.item_price')}
+                      </label>
+                      <input
+                        type="number"
+                        value={item.pricePerUnit || ''}
+                        onChange={(e) =>
+                          updateItem(
+                            item.id,
+                            'pricePerUnit',
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="w-1/2 md:w-auto order-6">
+                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                        {t('th_total')}
+                      </label>
+                      <input
+                        type="text"
+                        value={Number(item.totalPrice || 0).toFixed(2)}
+                        readOnly
+                        className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
+                      />
+                    </div>
+                    <div className="w-1/2 md:w-auto flex justify-end gap-1 order-7">
+                      <button
+                        onClick={() => addItemBelow(item.id)}
+                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                        title="Přidat řádek pod"
+                      >
+                        <PlusCircle size={18} />
+                      </button>
+                      {currentInvoice.items.length > 1 && (
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   ))}
               </div>
             </div>
