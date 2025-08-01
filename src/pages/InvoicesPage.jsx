@@ -1088,38 +1088,39 @@ const InvoicesPage = ({
     }, 500);
   };
 
- const handlePrint = (invoice) => {
-  const printContainer = document.createElement('div');
-  printContainer.id = 'print-container';
-  printContainer.style.position = 'absolute';
-  printContainer.style.left = '-9999px';
-  document.body.appendChild(printContainer);
+  const handlePrint = (invoice) => {
+    const printContainer = document.createElement('div');
+    printContainer.id = 'print-container';
+    printContainer.style.cssText = `
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        background: white;
+      `;
+    document.body.appendChild(printContainer);
+    const root = ReactDOM.createRoot(printContainer);
+    printRootRef.current = root;
 
-  const root = ReactDOM.createRoot(printContainer);
-  printRootRef.current = root;
+    root.render(
+      <InvoicePrintable
+        invoice={invoice}
+        supplier={supplier}
+        vatSettings={vatSettings}
+      />
+    );
 
-  root.render(
-    <InvoicePrintable
-      invoice={invoice}
-      supplier={supplier}
-      vatSettings={vatSettings}
-    />
-  );
-
-  setTimeout(() => {
-    try {
-      window.print();
-    } finally {
-      // Čekáme na dokončení tisku před odstraněním
-      const cleanup = () => {
+    setTimeout(() => {
+      try {
+        window.print();
+      } finally {
         cleanupDOMElement(printContainer, printRootRef.current);
-        window.removeEventListener('afterprint', cleanup);
-      };
-      
-      window.addEventListener('afterprint', cleanup);
-    }
-  }, 1000); // Zvýšené zpoždění
-};
+        printRootRef.current = null;
+      }
+    }, 500);
+  };
 
   const handleShare = async (invoice) => {
     try {
@@ -1490,10 +1491,14 @@ const InvoicesPage = ({
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('invoices_page.form.number')}
+              </label>
               <input
                 type="text"
-                placeholder={t('invoices_page.form.number')}
+                placeholder="např. 2025-001"
                 value={currentInvoice.number || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
@@ -1503,9 +1508,14 @@ const InvoicesPage = ({
                 }
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('invoices_page.form.issue_date')}
+              </label>
               <input
                 type="text"
-                placeholder={t('invoices_page.form.issue_date')}
+                placeholder="dd.mm.rrrr"
                 value={currentInvoice.issueDate || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
@@ -1519,9 +1529,14 @@ const InvoicesPage = ({
                 }
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('invoices_page.form.taxable_date')}
+              </label>
               <input
                 type="text"
-                placeholder={t('invoices_page.form.taxable_date')}
+                placeholder="dd.mm.rrrr"
                 value={currentInvoice.duzpDate || ''}
                 onChange={(e) =>
                   setCurrentInvoice({
@@ -1531,9 +1546,14 @@ const InvoicesPage = ({
                 }
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Splatnost (dny) - automaticky se vypočítá datum splatnosti
+              </label>
               <input
                 type="number"
-                placeholder={t('invoices_page.form.due_days')}
+                placeholder="14"
                 value={currentInvoice.dueDays || ''}
                 onChange={(e) => {
                   const days = parseInt(e.target.value, 10) || 0;
@@ -1546,6 +1566,7 @@ const InvoicesPage = ({
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
 
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -1589,96 +1610,126 @@ const InvoicesPage = ({
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_name')}
-                  value={currentInvoice.customer?.name || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        name: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_address')}
-                  value={currentInvoice.customer?.address || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        address: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_zip')}
-                  value={currentInvoice.customer?.zip || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        zip: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_city')}
-                  value={currentInvoice.customer?.city || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        city: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_ico')}
-                  value={currentInvoice.customer?.ico || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        ico: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder={t('invoices_page.form.customer_dic')}
-                  value={currentInvoice.customer?.dic || ''}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      customer: {
-                        ...currentInvoice.customer,
-                        dic: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_name')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Název firmy nebo jméno"
+                    value={currentInvoice.customer?.name || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          name: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_address')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ulice a číslo popisné"
+                    value={currentInvoice.customer?.address || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          address: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_zip')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="PSČ"
+                    value={currentInvoice.customer?.zip || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          zip: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_city')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Město"
+                    value={currentInvoice.customer?.city || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          city: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_ico')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="IČO"
+                    value={currentInvoice.customer?.ico || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          ico: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('invoices_page.form.customer_dic')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="DIČ (volitelné)"
+                    value={currentInvoice.customer?.dic || ''}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        customer: {
+                          ...currentInvoice.customer,
+                          dic: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1687,158 +1738,154 @@ const InvoicesPage = ({
                 {t('invoices_page.form.items')}
               </h3>
               <div className="space-y-3">
-                <div className="hidden md:flex gap-2 text-sm font-medium text-gray-600 px-1">
-                  <div className="flex-grow">
-                    {t('invoices_page.form.item_description')}
-                  </div>
-                  <div className="w-20 text-center">
-                    {t('invoices_page.form.item_quantity')}
-                  </div>
-                  <div className="w-16 text-center">
-                    {t('invoices_page.form.item_unit')}
-                  </div>
-                  <div className="w-24 text-right">
-                    {t('invoices_page.form.item_price')}
-                  </div>
-                  {vatSettings?.enabled && (
-                    <div className="w-16 text-center">DPH</div>
-                  )}
-                  <div className="w-28 text-right">{t('th_total')}</div>
-                  <div className="w-16 text-center"></div>
+              <div className="hidden md:flex gap-2 text-sm font-medium text-gray-600 px-1">
+                {vatSettings?.enabled && (
+                  <div className="w-16 text-center">DPH %</div>
+                )}
+                <div className="flex-grow">
+                  {t('invoices_page.form.item_description')}
                 </div>
+                <div className="w-20 text-center">
+                  {t('invoices_page.form.item_quantity')}
+                </div>
+                <div className="w-16 text-center">
+                  {t('invoices_page.form.item_unit')}
+                </div>
+                <div className="w-24 text-right">
+                  {t('invoices_page.form.item_price')}
+                </div>
+                <div className="w-28 text-right">{t('th_total')}</div>
+                <div className="w-16 text-center"></div>
+              </div>
 
                 {currentInvoice.items &&
                   currentInvoice.items.map((item) => (
                     <div
-                      key={item.id}
-                      className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
-                    >
-                      <div className="w-full md:flex-grow order-1">
-                        <label className="text-xs font-medium text-gray-600 md:hidden">
-                          {t('invoices_page.form.item_description')}
-                        </label>
-                        <input
-                          type="text"
-                          value={item.description || ''}
-                          onChange={(e) =>
-                            updateItem(item.id, 'description', e.target.value)
-                          }
-                          className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder={t('invoices_page.form.item_description')}
-                        />
-                      </div>
-                      <div className="w-1/3 md:w-20 order-2">
-                        <label className="text-xs font-medium text-gray-600 md:hidden">
-                          {t('invoices_page.form.item_quantity')}
-                        </label>
-                        <input
-                          type="number"
-                          value={item.quantity || ''}
-                          onChange={(e) =>
-                            updateItem(
-                              item.id,
-                              'quantity',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="1"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                      <div className="w-1/3 md:w-16 order-3">
-                        <label className="text-xs font-medium text-gray-600 md:hidden">
-                          {t('invoices_page.form.item_unit')}
-                        </label>
-                        <input
-                          type="text"
-                          value={item.unit || ''}
-                          onChange={(e) =>
-                            updateItem(item.id, 'unit', e.target.value)
-                          }
-                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="ks"
-                        />
-                      </div>
-                      <div className="w-1/3 md:w-24 order-4">
-                        <label className="text-xs font-medium text-gray-600 md:hidden">
-                          {t('invoices_page.form.item_price')}
-                        </label>
-                        <input
-                          type="number"
-                          value={item.pricePerUnit || ''}
-                          onChange={(e) =>
-                            updateItem(
-                              item.id,
-                              'pricePerUnit',
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="0.00"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                      {vatSettings?.enabled && (
-                        <div
-                          className="w-1/4 order-4-5"
-                          style={{ width: '70px' }}
-                        >
-                          <label className="text-xs font-medium text-gray-600 md:hidden">
-                            DPH
-                          </label>
-                          <select
-                            value={item.vatRate || 21}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                'vatRate',
-                                parseInt(e.target.value)
-                              )
-                            }
-                            className="w-full -px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            {(vatSettings.rates || [21]).map((rate) => (
-                              <option key={rate} value={rate}>
-                                {rate}%
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <div className="w-1/2 md:w-28 order-6">
-                        <label className="text-xs font-medium text-gray-600 md:hidden">
-                          {t('th_total')}
-                        </label>
-                        <input
-                          type="text"
-                          value={Number(item.totalPrice || 0).toFixed(2)}
-                          readOnly
-                          className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
-                        />
-                      </div>
-                      <div className="w-1/2 md:w-16 flex justify-end gap-1 order-6">
-                        <button
-                          onClick={() => addItemBelow(item.id)}
-                          className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                          title="Přidat řádek pod"
-                        >
-                          <PlusCircle size={18} />
-                        </button>
-                        {currentInvoice.items.length > 1 && (
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                            title={t('common.delete')}
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+  key={item.id}
+  className="flex flex-wrap md:flex-nowrap gap-2 items-center bg-white p-3 rounded border"
+>
+  {vatSettings?.enabled && (
+    <div className="w-1/4 md:w-16 order-1">
+      <label className="text-xs font-medium text-gray-600 md:hidden">
+        DPH
+      </label>
+      <select
+        value={item.vatRate || 21}
+        onChange={(e) =>
+          updateItem(
+            item.id,
+            'vatRate',
+            parseInt(e.target.value)
+          )
+        }
+        className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        {(vatSettings.rates || [21]).map((rate) => (
+          <option key={rate} value={rate}>
+            {rate}%
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+  <div className={`w-full ${vatSettings?.enabled ? 'md:flex-grow' : 'md:flex-grow'} order-2`}>
+    <label className="text-xs font-medium text-gray-600 md:hidden">
+      {t('invoices_page.form.item_description')}
+    </label>
+    <input
+      type="text"
+      value={item.description || ''}
+      onChange={(e) =>
+        updateItem(item.id, 'description', e.target.value)
+      }
+      className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+      placeholder={t('invoices_page.form.item_description')}
+    />
+  </div>
+  <div className="w-1/3 md:w-20 order-3">
+    <label className="text-xs font-medium text-gray-600 md:hidden">
+      {t('invoices_page.form.item_quantity')}
+    </label>
+    <input
+      type="number"
+      value={item.quantity || ''}
+      onChange={(e) =>
+        updateItem(
+          item.id,
+          'quantity',
+          parseFloat(e.target.value) || 0
+        )
+      }
+      className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+      placeholder="1"
+      min="0"
+      step="0.01"
+    />
+  </div>
+  <div className="w-1/3 md:w-16 order-4">
+    <label className="text-xs font-medium text-gray-600 md:hidden">
+      {t('invoices_page.form.item_unit')}
+    </label>
+    <input
+      type="text"
+      value={item.unit || ''}
+      onChange={(e) =>
+        updateItem(item.id, 'unit', e.target.value)
+      }
+      className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+      placeholder="ks"
+    />
+  </div>
+  <div className="w-1/3 md:w-24 order-5">
+    <label className="text-xs font-medium text-gray-600 md:hidden">
+      {t('invoices_page.form.item_price')}
+    </label>
+    <input
+      type="number"
+      value={item.pricePerUnit || ''}
+      onChange={(e) =>
+        updateItem(
+          item.id,
+          'pricePerUnit',
+          parseFloat(e.target.value) || 0
+        )
+      }
+      className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+      placeholder="0.00"
+      min="0"
+      step="0.01"
+    />
+  </div>
+  <div className="w-1/2 md:w-28 order-6">
+    <label className="text-xs font-medium text-gray-600 md:hidden">
+      {t('th_total')}
+    </label>
+    <input
+      type="text"
+      value={Number(item.totalPrice || 0).toFixed(2)}
+      readOnly
+      className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
+    />
+  </div>
+  <div className="w-1/2 md:w-16 flex justify-end gap-1 order-7">
+    <button
+      onClick={() => addItemBelow(item.id)}
+      className="p-1 text-green-600 hover:text-green-800 transition-colors"
+      title="Přidat řádek pod"
+    >
+      <PlusCircle size={18} />
+    </button>
+    {currentInvoice.items.length > 1 && (
+      <button
+        onClick={() => removeItem(item.id)}
+        className="p-1 text-red-600 hover:text-red-800 transition-colors"
+        title={t('common.delete')}
+      >
+        <Trash2 size={18} />
+      </button>
+    )}
+  </div>
+</div>
                   ))}
               </div>
             </div>
