@@ -417,23 +417,27 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
           <li key={action.key}>
             <button
               onClick={() => {
+                console.log('🎯 Menu item clicked:', action.key, action.label); // DEBUG
+                console.log('🎯 onAction function:', typeof onAction); // DEBUG
+                console.log('🎯 invoice:', invoice?.id); // DEBUG
+                
                 onAction(action.key, invoice);
                 onClose();
               }}
-              className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${
-                action.className || ''
-              }`}
-            >
-              <action.icon size={16} />
-              <span>{action.label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>,
-    document.body
-  );
-};
+  className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${
+    action.className || ''
+  }`}
+  >
+    <action.icon size={16} />
+    <span>{action.label}</span>
+  </button>
+            </li>
+          ))}
+        </ul>
+      </div>,
+      document.body
+    );
+  };
 
 const PreviewModal = ({ isOpen, onClose, children }) => {
   useEffect(() => {
@@ -510,6 +514,7 @@ const InvoicePreview = ({
       </div>
     );
   }
+
 
   const { subtotal, vatAmount, total } = calculateTotals(invoice, vatSettings);
 
@@ -878,7 +883,7 @@ const InvoicesPage = ({
     }
   };
 
-  // Nová funkce pro vytvoření faktury z dodacích listů - OPRAVENO
+    // Nová funkce pro vytvoření faktury z dodacích listů - OPRAVENO
   const handleCreateInvoiceFromDL = (selectedDeliveryNotes) => {
     try {
       const firstCustomer = selectedDeliveryNotes[0].customer;
@@ -914,6 +919,8 @@ const InvoicesPage = ({
       console.error('Error creating invoice from delivery notes:', error);
     }
   };
+
+  
 
   const cloneInvoice = (invoiceToClone) => {
     try {
@@ -1091,16 +1098,10 @@ const InvoicesPage = ({
   const handlePrint = (invoice) => {
     const printContainer = document.createElement('div');
     printContainer.id = 'print-container';
-    printContainer.style.cssText = `
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 9999;
-        background: white;
-      `;
+    printContainer.style.position = 'absolute';
+    printContainer.style.left = '-9999px';
     document.body.appendChild(printContainer);
+
     const root = ReactDOM.createRoot(printContainer);
     printRootRef.current = root;
 
@@ -1116,10 +1117,21 @@ const InvoicesPage = ({
       try {
         window.print();
       } finally {
-        cleanupDOMElement(printContainer, printRootRef.current);
-        printRootRef.current = null;
+        // Čekáme na dokončení tisku před odstraněním
+        const cleanup = () => {
+          if (printRootRef.current) {
+            printRootRef.current.unmount();
+            printRootRef.current = null;
+          }
+          if (printContainer.parentNode) {
+            printContainer.parentNode.removeChild(printContainer);
+          }
+          window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup);
       }
-    }, 500);
+    }, 1000);
   };
 
   const handleShare = async (invoice) => {
@@ -1140,31 +1152,36 @@ const InvoicesPage = ({
   };
 
   const handleAction = (actionKey, invoice) => {
+    console.log('🔥 handleAction CALLED:', actionKey, invoice?.id); // DEBUG
+    
     switch (actionKey) {
       case 'edit':
+        console.log('📝 Calling editInvoice'); // DEBUG
         editInvoice(invoice);
         break;
-      case 'clone':
-        cloneInvoice(invoice);
-        break;
-      case 'print':
-        handlePrint(invoice);
-        break;
       case 'view':
+        console.log('👁️ Calling setCurrentInvoice'); // DEBUG
         setCurrentInvoice(invoice);
         setShowPreviewModal(true);
         break;
+        case 'print':
+          console.log('🖨️ Calling handlePrint');
+          handlePrint(invoice);
+          break;
       case 'download':
+        console.log('💾 Calling handleDownloadPdf'); // DEBUG
         handleDownloadPdf(invoice);
         break;
-      case 'share':
+      case 'share':     // ← PŘIDAT TUTO AKCI
+        console.log('📤 Calling handleShare'); // DEBUG
         handleShare(invoice);
         break;
       case 'delete':
+        console.log('🗑️ Calling deleteInvoice'); // DEBUG
         deleteInvoice(invoice.id);
-        break;
-      default:
-        console.warn('Unknown action:', actionKey);
+        break;      
+        default:
+        console.warn('❌ Unknown action:', actionKey);
         break;
     }
   };
@@ -1176,27 +1193,35 @@ const InvoicesPage = ({
     const handleMenuToggle = (e) => {
       e.preventDefault();
       e.stopPropagation();
-
+    
+      console.log('🔘 Menu toggle, buttonRef:', buttonRef.current); // DEBUG
+    
       setTimeout(() => {
-        setOpenMenu((prev) =>
-          prev.id === invoice.id
+        setOpenMenu((prev) => {
+          const newState = prev.id === invoice.id
             ? { id: null, ref: null }
-            : { id: invoice.id, ref: buttonRef.current }
-        );
+            : { id: invoice.id, ref: buttonRef.current };
+          
+          console.log('📝 Setting openMenu:', newState); // DEBUG
+          return newState;
+        });
       }, 0);
     };
 
     return (
       <div className="relative">
         <button
-          ref={buttonRef}
-          onTouchStart={(e) => e.stopPropagation()}
-          onClick={handleMenuToggle}
-          className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
-          title="Další akce"
-        >
-          <MoreVertical size={20} />
-        </button>
+  ref={buttonRef}
+  onTouchStart={(e) => e.stopPropagation()}
+  onClick={(e) => {
+    console.log('🔘 Button ... clicked!'); // DEBUG - mělo by se vypsat
+    handleMenuToggle(e);
+  }}
+  className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+  title="Další akce"
+>
+  <MoreVertical size={20} />
+</button>
         {isMenuOpen && (
           <ActionsMenu
             invoice={invoice}
@@ -1325,157 +1350,171 @@ const InvoicesPage = ({
                 {t('invoices_page.table.actions')}
               </div>
             </div>
-
             <div className="divide-y divide-gray-200">
-  {invoices.length === 0 ? (
-    <div className="p-8 text-center text-gray-500">
-      <div className="mb-4">
-        <Edit size={48} className="mx-auto text-gray-300" />
-      </div>
-      <div className="text-lg font-medium mb-2">
-        {t('invoices_page.empty.title')}
-      </div>
-      <div className="text-sm">
-        {t('invoices_page.empty.subtitle')}
-      </div>
-      <button
-        onClick={() => handleAddNew()}
-        className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-      >
-        <Plus size={16} />
-        <span>{t('invoices_page.new_title')}</span>
-      </button>
-    </div>
-  ) : (
-    invoices.map((invoice) => (
-      <div key={invoice.id} className="border-b border-gray-200 hover:bg-gray-50">
-        {/* Mobile Layout */}
-        <div className="block md:hidden p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="font-semibold text-lg">{invoice.number}</div>
-                <div className="text-gray-600 text-sm">{invoice.customer?.name || 'Bez odběratele'}</div>
-                <div className="text-gray-500 text-xs">
-                  {invoice.issueDate} | Splatnost: {invoice.dueDate}
+              {invoices.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <div className="mb-4">
+                    <Edit size={48} className="mx-auto text-gray-300" />
+                  </div>
+                  <div className="text-lg font-medium mb-2">
+                    {t('invoices_page.empty.title')}
+                  </div>
+                  <div className="text-sm">
+                    {t('invoices_page.empty.subtitle')}
+                  </div>
+                  <button
+                    onClick={() => handleAddNew()}
+                    className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                    <span>{t('invoices_page.new_title')}</span>
+                  </button>
                 </div>
-              </div>
-              <div className="text-right">
-                {(() => {
-                  const { subtotal, total } = calculateTotals(invoice, vatSettings);
-                  return (
-                    <>
-                      <div className="font-medium text-lg">{subtotal.toFixed(2)} Kč</div>
-                      {vatSettings?.enabled && (
-                        <div className="text-xs text-gray-500">
-                          s DPH: {total.toFixed(2)} Kč
+              ) : (
+                invoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    {/* Mobile Layout */}
+                    <div className="block md:hidden p-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-semibold text-lg">
+                              {invoice.number}
+                            </div>
+                            <div className="text-gray-600 text-sm">
+                              {invoice.customer?.name || 'Bez odběratele'}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {invoice.issueDate} | Splatnost: {invoice.dueDate}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {(() => {
+                              const { subtotal, total } = calculateTotals(
+                                invoice,
+                                vatSettings
+                              );
+                              return (
+                                <>
+                                  <div className="font-medium text-lg">
+                                    {subtotal.toFixed(2)} Kč
+                                  </div>
+                                  {vatSettings?.enabled && (
+                                    <div className="text-xs text-gray-500">
+                                      s DPH: {total.toFixed(2)} Kč
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
                         </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('print', invoice);
-                }}
-                className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm font-medium transition-colors"
-                title={t('common.print')}
-              >
-                <Printer size={16} />
-                Tisk
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('download', invoice);
-                }}
-                className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm font-medium transition-colors"
-                title={t('common.download_pdf')}
-              >
-                <Download size={16} />
-                PDF
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('edit', invoice);
-                }}
-                className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-sm font-medium transition-colors"
-                title={t('common.edit')}
-              >
-                <Edit size={16} />
-                Upravit
-              </button>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('clone', invoice);
-                }}
-                className="flex items-center gap-1 px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-sm font-medium transition-colors"
-                title={t('common.clone')}
-              >
-                <Copy size={16} />
-                Kopie
-              </button>
-              <MoreActionsButton invoice={invoice} />
-            </div>
-          </div>
-        </div>
-        
-        {/* Desktop Layout */}
-        <div
-          onClick={() => editInvoice(invoice)}
-          className="hidden md:grid md:grid-cols-5 items-center p-4 cursor-pointer transition-colors"
-        >
-          <div className="md:col-span-2">
-            <div className="font-bold">{invoice.customer.name}</div>
-          </div>
-          <div className="text-sm text-gray-500 text-center">
-            {invoice.number}
-          </div>
-          <div className="text-right font-medium">
-            {(() => {
-              const { subtotal, total } = calculateTotals(invoice, vatSettings);
-              return (
-                <>
-                  {subtotal.toFixed(2)} {t('currency_czk')}
-                  {vatSettings?.enabled && (
-                    <div className="text-xs text-gray-500">
-                      {t('delivery_notes_page.table.with_vat', {
-                        amount: total.toFixed(2),
-                      })}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('print', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.print')}
+                          >
+                            <Printer size={16} />
+                            Tisk
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('download', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.download_pdf')}
+                          >
+                            <Download size={16} />
+                            PDF
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('edit', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.edit')}
+                          >
+                            <Edit size={16} />
+                            Upravit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('clone', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.clone')}
+                          >
+                            <Copy size={16} />
+                            Kopie
+                          </button>
+                          {/* <MoreActionsButton invoice={invoice} /> */}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-          <div
-            className="text-right"
-            onTouchStart={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex gap-1 justify-center">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('print', invoice);
-                }}
-                className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                title={t('common.print')}
-              >
-                <Printer size={18} />
-              </button>
-              <button
+
+                    {/* Desktop Layout */}
+                    <div
+                      onClick={() => editInvoice(invoice)}
+                      className="hidden md:grid md:grid-cols-5 items-center p-4 cursor-pointer transition-colors"
+                    >
+                      <div className="md:col-span-2">
+                        <div className="font-bold">{invoice.customer.name}</div>
+                      </div>
+                      <div className="text-sm text-gray-500 text-center">
+                        {invoice.number}
+                      </div>
+                      <div className="text-right font-medium">
+                        {(() => {
+                          const { subtotal, total } = calculateTotals(
+                            invoice,
+                            vatSettings
+                          );
+                          return (
+                            <>
+                              {subtotal.toFixed(2)} {t('currency_czk')}
+                              {vatSettings?.enabled && (
+                                <div className="text-xs text-gray-500">
+                                  {t('delivery_notes_page.table.with_vat', {
+                                    amount: total.toFixed(2),
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div
+                        className="text-right"
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex gap-1 justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('print', invoice);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                            title={t('common.print')}
+                          >
+                            <Printer size={18} />
+                          </button>
+                          {/* <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1485,8 +1524,8 @@ const InvoicesPage = ({
                 title={t('common.download_pdf')}
               >
                 <Download size={18} />
-              </button>
-              <button
+              </button> */}
+                          {/* <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1496,38 +1535,38 @@ const InvoicesPage = ({
                 title={t('common.view')}
               >
                 <Eye size={18} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('clone', invoice);
-                }}
-                className="p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors"
-                title={t('common.clone')}
-              >
-                <Copy size={18} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('edit', invoice);
-                }}
-                className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors"
-                title={t('common.edit')}
-              >
-                <Edit size={18} />
-              </button>
-              <MoreActionsButton invoice={invoice} />
-            </div>
+              </button> */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('clone', invoice);
+                            }}
+                            className="p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors"
+                            title={t('common.clone')}
+                          >
+                            <Copy size={18} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('edit', invoice);
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors"
+                            title={t('common.edit')}
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <MoreActionsButton invoice={invoice} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>{' '}
           </div>
-        </div>
-      </div>
-    ))
-  )}
-</div>
-  </div>
         </div>
       )}
 
@@ -1587,82 +1626,82 @@ const InvoicesPage = ({
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 space-y-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('invoices_page.form.number')}
-              </label>
-              <input
-                type="text"
-                placeholder="např. 2025-001"
-                value={currentInvoice.number || ''}
-                onChange={(e) =>
-                  setCurrentInvoice({
-                    ...currentInvoice,
-                    number: e.target.value,
-                  })
-                }
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('invoices_page.form.number')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="např. 2025-001"
+                  value={currentInvoice.number || ''}
+                  onChange={(e) =>
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      number: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('invoices_page.form.issue_date')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="dd.mm.rrrr"
+                  value={currentInvoice.issueDate || ''}
+                  onChange={(e) =>
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      issueDate: e.target.value,
+                      dueDate: calculateDueDate(
+                        e.target.value,
+                        currentInvoice.dueDays
+                      ),
+                    })
+                  }
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('invoices_page.form.taxable_date')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="dd.mm.rrrr"
+                  value={currentInvoice.duzpDate || ''}
+                  onChange={(e) =>
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      duzpDate: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Splatnost (dny) - automaticky se vypočítá datum splatnosti
+                </label>
+                <input
+                  type="number"
+                  placeholder="14"
+                  value={currentInvoice.dueDays || ''}
+                  onChange={(e) => {
+                    const days = parseInt(e.target.value, 10) || 0;
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      dueDays: days,
+                      dueDate: calculateDueDate(currentInvoice.issueDate, days),
+                    });
+                  }}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('invoices_page.form.issue_date')}
-              </label>
-              <input
-                type="text"
-                placeholder="dd.mm.rrrr"
-                value={currentInvoice.issueDate || ''}
-                onChange={(e) =>
-                  setCurrentInvoice({
-                    ...currentInvoice,
-                    issueDate: e.target.value,
-                    dueDate: calculateDueDate(
-                      e.target.value,
-                      currentInvoice.dueDays
-                    ),
-                  })
-                }
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('invoices_page.form.taxable_date')}
-              </label>
-              <input
-                type="text"
-                placeholder="dd.mm.rrrr"
-                value={currentInvoice.duzpDate || ''}
-                onChange={(e) =>
-                  setCurrentInvoice({
-                    ...currentInvoice,
-                    duzpDate: e.target.value,
-                  })
-                }
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Splatnost (dny) - automaticky se vypočítá datum splatnosti
-              </label>
-              <input
-                type="number"
-                placeholder="14"
-                value={currentInvoice.dueDays || ''}
-                onChange={(e) => {
-                  const days = parseInt(e.target.value, 10) || 0;
-                  setCurrentInvoice({
-                    ...currentInvoice,
-                    dueDays: days,
-                    dueDate: calculateDueDate(currentInvoice.issueDate, days),
-                  });
-                }}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
 
             <div>
               <div className="flex justify-between items-center mb-3">
@@ -1834,163 +1873,166 @@ const InvoicesPage = ({
                 {t('invoices_page.form.items')}
               </h3>
               <div className="space-y-3">
-              <div className="hidden md:grid gap-2 text-sm font-medium text-gray-600 px-1" style={{
-                gridTemplateColumns: vatSettings?.enabled 
-                  ? '60px 1fr 80px 60px 100px 120px 80px' 
-                  : '1fr 80px 60px 100px 120px 80px'
-              }}>
-                {vatSettings?.enabled && (
-                  <div className="text-center">DPH %</div>
-                )}
-                <div className="text-left">
-                  {t('invoices_page.form.item_description')}
+                <div
+                  className="hidden md:grid gap-2 text-sm font-medium text-gray-600 px-1"
+                  style={{
+                    gridTemplateColumns: vatSettings?.enabled
+                      ? '60px 1fr 80px 60px 100px 120px 80px'
+                      : '1fr 80px 60px 100px 120px 80px',
+                  }}
+                >
+                  {vatSettings?.enabled && (
+                    <div className="text-center">DPH %</div>
+                  )}
+                  <div className="text-left">
+                    {t('invoices_page.form.item_description')}
+                  </div>
+                  <div className="text-center">
+                    {t('invoices_page.form.item_quantity')}
+                  </div>
+                  <div className="text-center">
+                    {t('invoices_page.form.item_unit')}
+                  </div>
+                  <div className="text-right">
+                    {t('invoices_page.form.item_price')}
+                  </div>
+                  <div className="text-right">{t('th_total')}</div>
+                  <div className="text-center"></div>
                 </div>
-                <div className="text-center">
-                  {t('invoices_page.form.item_quantity')}
-                </div>
-                <div className="text-center">
-                  {t('invoices_page.form.item_unit')}
-                </div>
-                <div className="text-right">
-                  {t('invoices_page.form.item_price')}
-                </div>
-                <div className="text-right">{t('th_total')}</div>
-                <div className="text-center"></div>
-              </div>
 
                 {currentInvoice.items &&
                   currentInvoice.items.map((item) => (
                     <div
-                    key={item.id}
-                    className="md:grid md:gap-2 md:items-center bg-white p-3 rounded border flex flex-wrap gap-2"
-                    style={{
-                      gridTemplateColumns: vatSettings?.enabled 
-                        ? '60px 1fr 80px 60px 100px 120px 80px' 
-                        : '1fr 80px 60px 100px 120px 80px'
-                    }}
-                  >
-                    {vatSettings?.enabled && (
-                      <div className="w-1/4 md:w-auto order-1">
+                      key={item.id}
+                      className="md:grid md:gap-2 md:items-center bg-white p-3 rounded border flex flex-wrap gap-2"
+                      style={{
+                        gridTemplateColumns: vatSettings?.enabled
+                          ? '60px 1fr 80px 60px 100px 120px 80px'
+                          : '1fr 80px 60px 100px 120px 80px',
+                      }}
+                    >
+                      {vatSettings?.enabled && (
+                        <div className="w-1/4 md:w-auto order-1">
+                          <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                            DPH
+                          </label>
+                          <select
+                            value={item.vatRate || 21}
+                            onChange={(e) =>
+                              updateItem(
+                                item.id,
+                                'vatRate',
+                                parseInt(e.target.value)
+                              )
+                            }
+                            className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            {(vatSettings.rates || [21]).map((rate) => (
+                              <option key={rate} value={rate}>
+                                {rate}%
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="w-full md:w-auto order-2">
                         <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                          DPH
+                          {t('invoices_page.form.item_description')}
                         </label>
-                        <select
-                          value={item.vatRate || 21}
+                        <input
+                          type="text"
+                          value={item.description || ''}
+                          onChange={(e) =>
+                            updateItem(item.id, 'description', e.target.value)
+                          }
+                          className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder={t('invoices_page.form.item_description')}
+                        />
+                      </div>
+                      <div className="w-1/3 md:w-auto order-3">
+                        <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                          {t('invoices_page.form.item_quantity')}
+                        </label>
+                        <input
+                          type="number"
+                          value={item.quantity || ''}
                           onChange={(e) =>
                             updateItem(
                               item.id,
-                              'vatRate',
-                              parseInt(e.target.value)
+                              'quantity',
+                              parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          {(vatSettings.rates || [21]).map((rate) => (
-                            <option key={rate} value={rate}>
-                              {rate}%
-                            </option>
-                          ))}
-                        </select>
+                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="1"
+                          min="0"
+                          step="0.01"
+                        />
                       </div>
-                    )}
-                    <div className="w-full md:w-auto order-2">
-                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                        {t('invoices_page.form.item_description')}
-                      </label>
-                      <input
-                        type="text"
-                        value={item.description || ''}
-                        onChange={(e) =>
-                          updateItem(item.id, 'description', e.target.value)
-                        }
-                        className="w-full p-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder={t('invoices_page.form.item_description')}
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-auto order-3">
-                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                        {t('invoices_page.form.item_quantity')}
-                      </label>
-                      <input
-                        type="number"
-                        value={item.quantity || ''}
-                        onChange={(e) =>
-                          updateItem(
-                            item.id,
-                            'quantity',
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="1"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-auto order-4">
-                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                        {t('invoices_page.form.item_unit')}
-                      </label>
-                      <input
-                        type="text"
-                        value={item.unit || ''}
-                        onChange={(e) =>
-                          updateItem(item.id, 'unit', e.target.value)
-                        }
-                        className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="ks"
-                      />
-                    </div>
-                    <div className="w-1/3 md:w-auto order-5">
-                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                        {t('invoices_page.form.item_price')}
-                      </label>
-                      <input
-                        type="number"
-                        value={item.pricePerUnit || ''}
-                        onChange={(e) =>
-                          updateItem(
-                            item.id,
-                            'pricePerUnit',
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="w-1/2 md:w-auto order-6">
-                      <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
-                        {t('th_total')}
-                      </label>
-                      <input
-                        type="text"
-                        value={Number(item.totalPrice || 0).toFixed(2)}
-                        readOnly
-                        className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
-                      />
-                    </div>
-                    <div className="w-1/2 md:w-auto flex justify-end gap-1 order-7">
-                      <button
-                        onClick={() => addItemBelow(item.id)}
-                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                        title="Přidat řádek pod"
-                      >
-                        <PlusCircle size={18} />
-                      </button>
-                      {currentInvoice.items.length > 1 && (
+                      <div className="w-1/3 md:w-auto order-4">
+                        <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                          {t('invoices_page.form.item_unit')}
+                        </label>
+                        <input
+                          type="text"
+                          value={item.unit || ''}
+                          onChange={(e) =>
+                            updateItem(item.id, 'unit', e.target.value)
+                          }
+                          className="w-full p-1 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="ks"
+                        />
+                      </div>
+                      <div className="w-1/3 md:w-auto order-5">
+                        <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                          {t('invoices_page.form.item_price')}
+                        </label>
+                        <input
+                          type="number"
+                          value={item.pricePerUnit || ''}
+                          onChange={(e) =>
+                            updateItem(
+                              item.id,
+                              'pricePerUnit',
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full p-1 border rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="0.00"
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="w-1/2 md:w-auto order-6">
+                        <label className="text-xs font-medium text-gray-600 md:hidden block mb-1">
+                          {t('th_total')}
+                        </label>
+                        <input
+                          type="text"
+                          value={Number(item.totalPrice || 0).toFixed(2)}
+                          readOnly
+                          className="w-full p-1 border-none rounded text-sm text-right bg-gray-50"
+                        />
+                      </div>
+                      <div className="w-1/2 md:w-auto flex justify-end gap-1 order-7">
                         <button
-                          onClick={() => removeItem(item.id)}
-                          className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                          title={t('common.delete')}
+                          onClick={() => addItemBelow(item.id)}
+                          className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                          title="Přidat řádek pod"
                         >
-                          <Trash2 size={18} />
+                          <PlusCircle size={18} />
                         </button>
-                      )}
+                        {currentInvoice.items.length > 1 && (
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                            title={t('common.delete')}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   ))}
               </div>
             </div>
