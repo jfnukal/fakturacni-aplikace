@@ -26,7 +26,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
-import InvoicePrintable from '../pages/InvoicePrintable.jsx';
+import InvoicePrintable from '../components/InvoicePrintable.jsx';
 import ReactDOM from 'react-dom/client';
 import * as ReactDOMPortal from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal.jsx';
@@ -1172,7 +1172,7 @@ const InvoicesPage = ({
         console.log('💾 Calling handleDownloadPdf'); // DEBUG
         handleDownloadPdf(invoice);
         break;
-      case 'share':     // ← PŘIDAT TUTO AKCI
+      case 'share':     
         console.log('📤 Calling handleShare'); // DEBUG
         handleShare(invoice);
         break;
@@ -1461,6 +1461,18 @@ const InvoicesPage = ({
                             <Copy size={16} />
                             Kopie
                           </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('share', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.share')}
+                          >
+                            <Copy size={16} />
+                            Sdílet
+                          </button>
                            <button
                             onClick={(e) => {
                               e.preventDefault();
@@ -1695,8 +1707,7 @@ const InvoicesPage = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Splatnost (dny) - automaticky se vypočítá datum splatnosti
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('invoices_page.form.due_days_info')}
                 </label>
                 <input
                   type="number"
