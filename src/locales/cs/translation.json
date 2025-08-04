@@ -64,7 +64,7 @@
     "save_changes": "Uložit změny",
     "save_anyway": "Přesto uložit",
     "back": "Zpět",
-    "discard_changes": "Zahodit změny", 
+    "discard_changes": "Zahodit změny",
     "save_all_changes": "Uložit všechny změny"
   },
   "customers_page": {
@@ -104,7 +104,7 @@
     "title": "Produkty a ceník",
     "add_item": "Přidat produkt",
     "drag_handle": "Změnit pořadí",
-    "header": { 
+    "header": {
       "name": "Název produktu",
       "unit": "Jednotka",
       "price_without_vat": "Cena bez DPH/kus",
@@ -141,6 +141,7 @@
       "customer": "Odběratel",
       "issue_date": "Vystaveno dne",
       "amount": "Částka",
+      "actions": "Akce",
       "with_vat": "(s DPH: {{amount}} Kč)"
     },
     "form": {
@@ -206,6 +207,7 @@
       "issue_date": "Datum vystavení",
       "taxable_date": "DUZP",
       "due_days": "Splatnost (dny)",
+      "due_days_info": "Splatnost (dny) - automaticky se vypočítá datum splatnosti",
       "customer": "Odběratel",
       "select_saved": "Vybrat uloženého",
       "customer_name": "Název",
