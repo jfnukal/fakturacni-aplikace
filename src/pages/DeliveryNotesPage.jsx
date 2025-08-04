@@ -19,6 +19,48 @@ const formatDateForDisplay = (date) => {
   }
 };
 
+// Funkce pro navigaci mezi políčky množství
+const handleQuantityKeyDown = (e, currentIndex) => {
+  const quantityInputs = document.querySelectorAll('input[data-quantity-input]');
+  
+  if (e.key === 'Tab' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    
+    let nextIndex;
+    if (e.key === 'Tab' && !e.shiftKey || e.key === 'ArrowDown') {
+      // Tab nebo šipka dolů = další políčko
+      nextIndex = currentIndex + 1;
+      if (nextIndex >= quantityInputs.length) {
+        nextIndex = 0; // Na konci skoč na začátek
+      }
+    } else if (e.key === 'Tab' && e.shiftKey || e.key === 'ArrowUp') {
+      // Shift+Tab nebo šipka nahoru = předchozí políčko
+      nextIndex = currentIndex - 1;
+      if (nextIndex < 0) {
+        nextIndex = quantityInputs.length - 1; // Na začátku skoč na konec
+      }
+    }
+    
+    if (quantityInputs[nextIndex]) {
+      quantityInputs[nextIndex].focus();
+      quantityInputs[nextIndex].select(); // Označ text pro snadnější přepis
+    }
+  }
+  
+  // Enter také skočí na další políčko
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= quantityInputs.length) {
+      nextIndex = 0;
+    }
+    if (quantityInputs[nextIndex]) {
+      quantityInputs[nextIndex].focus();
+      quantityInputs[nextIndex].select();
+    }
+  }
+};
+
 
 
 const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, creationRequest, setCreationRequest }) => {
@@ -78,6 +120,23 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
     return { totalWithoutVat, totalWithVat, vatBreakdown };
   };
 
+  // Funkce pro výpočet následujícího pracovního dne
+const getNextBusinessDay = () => {
+  const today = new Date();
+  const nextDay = new Date(today);
+  nextDay.setDate(today.getDate() + 1);
+  
+  // Pokud je následující den sobota (6) nebo neděle (0), posuň na pondělí
+  const dayOfWeek = nextDay.getDay();
+  if (dayOfWeek === 6) { // Sobota - přidej 2 dny (pondělí)
+    nextDay.setDate(nextDay.getDate() + 2);
+  } else if (dayOfWeek === 0) { // Neděle - přidej 1 den (pondělí)  
+    nextDay.setDate(nextDay.getDate() + 1);
+  }
+  
+  return nextDay.toISOString().split('T')[0];
+};
+
   const getNewDeliveryNote = () => {
     const allNumbers = deliveryNotes.map(note => note.number);
     
@@ -89,7 +148,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
 
     return {
       number: generateNextDocumentNumber(allNumbers),
-      date: new Date().toISOString().split('T')[0],
+      date: getNextBusinessDay(),
       customer: null,
       items: products.map(p => ({ 
           productId: p.id, 
@@ -470,11 +529,11 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                   <div className="col-span-5">{t('products_page.header.name')}</div>
                   <div className="col-span-2 text-right">{t('products_page.header.price_without_vat')}</div>
                   {currentDeliveryNote.vatSnapshot?.enabled && (
-                    <div className="col-span-2 text-center">Sazba DPH</div>
+                    <div className="col-span-2 text-center">{t('vatRate')}</div>
                   )}
                   <div className="col-span-3 text-center">{t('products_page.header.unit')} / Množství</div>
                 </div>
-                {currentDeliveryNote.items.map((item) => (
+                {currentDeliveryNote.items.map((item, index) => (
                   <div key={item.productId} className="grid grid-cols-2 md:grid-cols-12 gap-3 items-center bg-white p-3 rounded border">
                     {/* NÁZEV POLOŽKY */}
                     <div className="col-span-2 md:col-span-5 font-medium">{item.name}</div>
@@ -482,7 +541,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                     {/* CENA POLOŽKY */}
                     <div className="col-span-1 md:col-span-2">
                       <label className="md:hidden text-xs text-gray-500">Cena/jednotka</label>
-                      <input type="text" value={`${Number(item.price).toFixed(2)}`} readOnly className="w-full p-2 border-none bg-gray-100 rounded text-right" />
+                      <input type="text" value={`${Number(item.price).toFixed(2)}`} readOnly tabIndex="-1" className="w-full p-2 border-none bg-gray-100 rounded text-right" />
                     </div>
                     
                     {/* VÝBĚR SAZBY DPH */}
@@ -491,6 +550,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                           <label className="md:hidden text-xs text-gray-500">Sazba DPH</label>
                           <select
                               value={item.vatRate}
+                              tabIndex="-1"
                               onChange={(e) => setCurrentDeliveryNote({ 
                                   ...currentDeliveryNote, 
                                   items: currentDeliveryNote.items.map(i => 
@@ -511,7 +571,20 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                       <label className="md:hidden text-xs text-gray-500">{item.unit} / Množství</label>
                       <div className="flex items-center">
                         <span className="pr-2 text-gray-500 text-sm hidden md:inline">{item.unit}</span>
-                        <input type="number" value={item.quantity === 0 ? '' : item.quantity} placeholder="0" onChange={(e) => setCurrentDeliveryNote({ ...currentDeliveryNote, items: currentDeliveryNote.items.map((i) => i.productId === item.productId ? { ...i, quantity: parseInt(e.target.value, 10) || 0 } : i) })} className="w-full p-2 border rounded text-center" />
+                        <input 
+                          type="number" 
+                          value={item.quantity === 0 ? '' : item.quantity} 
+                          placeholder="0"
+                          data-quantity-input="true"
+                          onKeyDown={(e) => handleQuantityKeyDown(e, index)}
+                          onChange={(e) => setCurrentDeliveryNote({ 
+                            ...currentDeliveryNote, 
+                            items: currentDeliveryNote.items.map((i) => 
+                              i.productId === item.productId ? { ...i, quantity: parseInt(e.target.value, 10) || 0 } : i
+                            ) 
+                          })} 
+                          className="w-full p-2 border rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        />
                       </div>
                     </div>
                   </div>
