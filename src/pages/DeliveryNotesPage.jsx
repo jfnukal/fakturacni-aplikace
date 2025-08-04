@@ -52,22 +52,61 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
     return () => unsubscribe();
   }, [currentUser]);
 
-  const calculateDlTotal = (items) => {
-    if (!items) return { totalWithoutVat: 0, totalWithVat: 0 };
-    const totalWithoutVat = items.reduce((sum, item) => sum + (item.quantity * (parseFloat(String(item.price).replace(',', '.')) || 0)), 0);
-    const totalWithVat = items.reduce((sum, item) => sum + (item.quantity * (parseFloat(String(item.price).replace(',', '.')) || 0) * (1 + (vatSettings?.rate / 100 || 0))), 0);
-    return { totalWithoutVat, totalWithVat };
+  // Nová funkce, která umí pracovat s různými sazbami DPH u jednotlivých položek
+  const calculateTotals = (items) => {
+    if (!items) return { totalWithoutVat: 0, totalWithVat: 0, vatBreakdown: {} };
+
+    let totalWithoutVat = 0;
+    const vatBreakdown = {}; // Zde budeme ukládat rozpad DPH podle sazeb
+
+    items.forEach(item => {
+      const itemTotal = (item.quantity || 0) * (parseFloat(String(item.price).replace(',', '.')) || 0);
+      totalWithoutVat += itemTotal;
+      
+      const itemVatRate = item.vatRate ?? 0;
+
+      if (!vatBreakdown[itemVatRate]) {
+        vatBreakdown[itemVatRate] = { base: 0, amount: 0 };
+      }
+      vatBreakdown[itemVatRate].base += itemTotal;
+      vatBreakdown[itemVatRate].amount += itemTotal * (itemVatRate / 100);
+    });
+    
+    const totalVatAmount = Object.values(vatBreakdown).reduce((sum, { amount }) => sum + amount, 0);
+    const totalWithVat = totalWithoutVat + totalVatAmount;
+
+    return { totalWithoutVat, totalWithVat, vatBreakdown };
   };
 
   const getNewDeliveryNote = () => {
     const allNumbers = deliveryNotes.map(note => note.number);
+    
+    // Zjistíme, jestli je v nastavení jen jedna sazba DPH, kterou můžeme předvolit
+    let defaultVatRate = null;
+    if (vatSettings.enabled && vatSettings.rates?.length === 1) {
+        defaultVatRate = vatSettings.rates[0];
+    }
+
     return {
       number: generateNextDocumentNumber(allNumbers),
       date: new Date().toISOString().split('T')[0],
       customer: null,
-      items: products.map(p => ({ productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 })),
+      items: products.map(p => ({ 
+          productId: p.id, 
+          name: p.name, 
+          unit: p.unit, 
+          price: p.price, 
+          quantity: 0,
+          // Nastavíme DPH: buď z produktu, nebo globální výchozí, nebo základní 21%
+          vatRate: p.defaultVatRate ?? defaultVatRate ?? (vatSettings.rates?.includes(21) ? 21 : (vatSettings.rates ? vatSettings.rates[0] : 21)),
+      })),
       userId: currentUser.uid,
-      showPrices: true, // Změna z false na true
+      showPrices: true,
+      // Toto je KLÍČOVÉ: Uložíme si kopii nastavení DPH platnou v momentě vytvoření dokladu.
+      vatSnapshot: {
+          enabled: vatSettings.enabled,
+          rates: vatSettings.rates || [21],
+      },
     };
   };
 
@@ -80,9 +119,25 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
   const handleEdit = (note) => {
     setCurrentDeliveryNote({
       ...note,
+      // Pokud starý doklad nemá uložený "snímek" DPH, vytvoříme mu ho z aktuálního nastavení.
+      vatSnapshot: note.vatSnapshot || { enabled: vatSettings.enabled, rates: vatSettings.rates || [21] },
       items: products.map(p => {
         const existingItem = note.items.find(ni => ni.productId === p.id);
-        return existingItem ? { ...existingItem } : { productId: p.id, name: p.name, unit: p.unit, price: p.price, quantity: 0 };
+        
+        if (existingItem) {
+          // Zajistíme, že i stará položka má pole vatRate
+          return { ...existingItem, vatRate: existingItem.vatRate ?? (vatSettings.rates?.includes(21) ? 21 : (vatSettings.rates ? vatSettings.rates[0] : 21)) };
+        } else {
+          // Nová položka přidaná do existujícího DL
+          return { 
+            productId: p.id, 
+            name: p.name, 
+            unit: p.unit, 
+            price: p.price, 
+            quantity: 0, 
+            vatRate: p.defaultVatRate ?? (vatSettings.rates?.includes(21) ? 21 : (vatSettings.rates ? vatSettings.rates[0] : 21)) 
+          };
+        }
       })
     });
     setEditingNote(note);
@@ -109,7 +164,7 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
         note={note}
         supplier={supplier}
         showPrices={note.showPrices}
-        vatSettings={vatSettings}
+        vatSettings={note.vatSnapshot || {enabled: false}}
       />
     );
 
@@ -137,9 +192,10 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
       return;
     }
     const noteToSave = { ...noteData, items: noteData.items.filter(item => item.quantity > 0) };
-    const { totalWithoutVat, totalWithVat } = calculateDlTotal(noteToSave.items);
+    const { totalWithoutVat, totalWithVat, vatBreakdown } = calculateTotals(noteToSave.items);
     noteToSave.totalWithoutVat = totalWithoutVat;
     noteToSave.totalWithVat = totalWithVat;
+    noteToSave.vatBreakdown = vatBreakdown; 
     
     try {
       if (editingNote) {
@@ -265,12 +321,13 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                       <th className="text-left p-4 font-medium">{t('delivery_notes_page.table.customer')}</th>
                       <th className="text-left p-4 font-medium">{t('delivery_notes_page.table.issue_date')}</th>
                       <th className="text-right p-4 font-medium">{t('delivery_notes_page.table.amount')}</th>
-                      <th className="text-center p-4 font-medium">{t('common.actions')}</th>
+                      <th className="text-center p-4 font-medium">{t('delivery_notes_page.table.actions')}</th>
                   </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {deliveryNotes.map(note => {
-                    const { totalWithoutVat, totalWithVat } = calculateDlTotal(note.items);
+              {deliveryNotes.map(note => {
+                    // Použijeme naši novou, chytřejší funkci pro výpočet
+                    const { totalWithoutVat, totalWithVat } = calculateTotals(note.items);
                     return (
                         <tr key={note.id} className="border-b border-gray-200 hover:bg-gray-50">
                             {/* Mobile Layout */}
@@ -409,21 +466,53 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                 <div>
                 <h3 className="text-lg font-medium mb-3">{t('delivery_notes_page.form.items')}</h3>
               <div className="space-y-3">
-                <div className="hidden md:grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 px-3">
-                  <div className="col-span-6">{t('delivery_notes_page.form.item_name')}</div>
-                  <div className="col-span-3 text-right">{t('delivery_notes_page.form.item_price')}</div>
-                  <div className="col-span-3 text-center">{t('delivery_notes_page.form.item_quantity')}</div>
+              <div className="hidden md:grid grid-cols-12 gap-3 text-sm font-medium text-gray-600 px-3">
+                  <div className="col-span-5">{t('products_page.header.name')}</div>
+                  <div className="col-span-2 text-right">{t('products_page.header.price_without_vat')}</div>
+                  {currentDeliveryNote.vatSnapshot?.enabled && (
+                    <div className="col-span-2 text-center">Sazba DPH</div>
+                  )}
+                  <div className="col-span-3 text-center">{t('products_page.header.unit')} / Množství</div>
                 </div>
                 {currentDeliveryNote.items.map((item) => (
                   <div key={item.productId} className="grid grid-cols-2 md:grid-cols-12 gap-3 items-center bg-white p-3 rounded border">
-                    <div className="col-span-2 md:col-span-6 font-medium">{item.name}</div>
-                    <div className="col-span-1 md:col-span-3">
-                      <label className="md:hidden text-xs text-gray-500">{t('delivery_notes_page.form.item_price')}</label>
-                      <input type="text" value={`${Number(item.price).toFixed(2)} Kč`} readOnly className="w-full p-2 border-none bg-gray-100 rounded text-right" />
+                    {/* NÁZEV POLOŽKY */}
+                    <div className="col-span-2 md:col-span-5 font-medium">{item.name}</div>
+                    
+                    {/* CENA POLOŽKY */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="md:hidden text-xs text-gray-500">Cena/jednotka</label>
+                      <input type="text" value={`${Number(item.price).toFixed(2)}`} readOnly className="w-full p-2 border-none bg-gray-100 rounded text-right" />
                     </div>
-                    <div className="col-span-1 md:col-span-3">
-                      <label className="md:hidden text-xs text-gray-500">{t('delivery_notes_page.form.item_quantity')}</label>
-                      <input type="number" value={item.quantity === 0 ? '' : item.quantity} placeholder="0" onChange={(e) => setCurrentDeliveryNote({ ...currentDeliveryNote, items: currentDeliveryNote.items.map((i) => i.productId === item.productId ? { ...i, quantity: parseInt(e.target.value, 10) || 0 } : i) })} className="w-full p-2 border rounded text-center" />
+                    
+                    {/* VÝBĚR SAZBY DPH */}
+                    {currentDeliveryNote.vatSnapshot?.enabled && (
+                      <div className="col-span-1 md:col-span-2">
+                          <label className="md:hidden text-xs text-gray-500">Sazba DPH</label>
+                          <select
+                              value={item.vatRate}
+                              onChange={(e) => setCurrentDeliveryNote({ 
+                                  ...currentDeliveryNote, 
+                                  items: currentDeliveryNote.items.map(i => 
+                                      i.productId === item.productId ? { ...i, vatRate: parseInt(e.target.value, 10) } : i
+                                  ) 
+                              })}
+                              className="w-full p-2 border rounded text-center"
+                          >
+                              {currentDeliveryNote.vatSnapshot.rates.map(rate => (
+                                  <option key={rate} value={rate}>{rate}%</option>
+                              ))}
+                          </select>
+                      </div>
+                    )}
+                    
+                    {/* MNOŽSTVÍ */}
+                    <div className={`col-span-2 md:col-span-3`}>
+                      <label className="md:hidden text-xs text-gray-500">{item.unit} / Množství</label>
+                      <div className="flex items-center">
+                        <span className="pr-2 text-gray-500 text-sm hidden md:inline">{item.unit}</span>
+                        <input type="number" value={item.quantity === 0 ? '' : item.quantity} placeholder="0" onChange={(e) => setCurrentDeliveryNote({ ...currentDeliveryNote, items: currentDeliveryNote.items.map((i) => i.productId === item.productId ? { ...i, quantity: parseInt(e.target.value, 10) || 0 } : i) })} className="w-full p-2 border rounded text-center" />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -435,8 +524,8 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
                         <span className="text-sm sm:text-base">{t('delivery_notes_page.form.show_prices')}</span>
                     </label>
                     <div className="text-right w-full sm:w-auto">
-                        <h3 className="text-base sm:text-lg font-bold">{t('delivery_notes_page.form.total_without_vat')} {calculateDlTotal(currentDeliveryNote.items).totalWithoutVat.toFixed(2)} Kč</h3>
-                        {vatSettings?.enabled && <h4 className="text-sm sm:text-md text-gray-600">{t('delivery_notes_page.form.total_with_vat')} {calculateDlTotal(currentDeliveryNote.items).totalWithVat.toFixed(2)} Kč</h4>}
+                        <h3 className="text-base sm:text-lg font-bold">{t('delivery_notes_page.form.total_without_vat')} {calculateTotals(currentDeliveryNote.items).totalWithoutVat.toFixed(2)} Kč</h3>
+                        {currentDeliveryNote.vatSnapshot?.enabled && <h4 className="text-sm sm:text-md text-gray-600">{t('delivery_notes_page.form.total_with_vat')} {calculateTotals(currentDeliveryNote.items).totalWithVat.toFixed(2)} Kč</h4>}
                     </div>
                 </div>
             </div>
