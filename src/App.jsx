@@ -26,6 +26,12 @@ const App = () => {
   const [deliveryNotes, setDeliveryNotes] = useState([]);
   const [creationRequest, setCreationRequest] = useState(null);
   const [appLoading, setAppLoading] = useState(true);
+  const [customerForNewInvoice, setCustomerForNewInvoice] = useState(null);
+
+  const handleSelectCustomerForNewInvoice = (customer) => {
+    setCustomerForNewInvoice(customer); // Zapamatuje si zákazníka
+    setActiveTab('invoices');           // Přepne na faktury
+  };
 
   useEffect(() => {
     if (!currentUser) {
@@ -93,9 +99,9 @@ const App = () => {
         </div>
         {/* ZDE JE ZMĚNA: Větší spodní padding, aby se nic nepřekrývalo */}
         <div className="p-3 md:p-6 pb-32">
-          {activeTab === 'invoices' && ( <InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} /> )}
+          {activeTab === 'invoices' && ( <InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} customerToPreselect={customerForNewInvoice} clearCustomerToPreselect={() => setCustomerForNewInvoice(null)} /> )}
           {activeTab === 'delivery_notes' && ( <DeliveryNotesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier} savedCustomers={savedCustomers} products={products} vatSettings={vatSettings} /> )}
-          {activeTab === 'customers' && ( <CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} setActiveTab={setActiveTab} /> )}
+          {activeTab === 'customers' && ( <CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} setActiveTab={setActiveTab} selectCustomerForNewInvoice={handleSelectCustomerForNewInvoice} /> )}
           {activeTab === 'products' && ( <ProductsPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings} products={products} /> )}
           {activeTab === 'settings' && (
               <SettingsPage 
