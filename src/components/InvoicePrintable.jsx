@@ -10,19 +10,45 @@ const InvoicePrintable = React.forwardRef(
       return null;
     }
 
+    // --- KLÍČOVÁ ZMĚNA: Přepracovaná funkce pro výpočet DPH ---
     const calculateTotals = () => {
+      if (!invoice.items || !Array.isArray(invoice.items)) {
+        return { subtotal: 0, total: 0, vatBreakdown: {} };
+      }
+
       const subtotal = invoice.items.reduce(
-        (sum, item) => sum + (item.totalPrice || 0),
+        (sum, item) => sum + (Number(item.totalPrice) || 0),
         0
       );
-      const vatAmount = vatSettings.enabled
-        ? (subtotal * vatSettings.rate) / 100
-        : 0;
-      const total = subtotal + vatAmount;
-      return { subtotal, vatAmount, total };
+
+      const vatBreakdown = {};
+
+      if (vatSettings.enabled) {
+        invoice.items.forEach((item) => {
+          const itemTotal = Number(item.totalPrice) || 0;
+          // Použije sazbu z položky, jinak výchozí z nastavení (nebo 21)
+          const itemVatRate = item.vatRate ?? vatSettings.rate ?? 21;
+
+          if (!vatBreakdown[itemVatRate]) {
+            vatBreakdown[itemVatRate] = { base: 0, amount: 0 };
+          }
+
+          vatBreakdown[itemVatRate].base += itemTotal;
+          vatBreakdown[itemVatRate].amount += (itemTotal * itemVatRate) / 100;
+        });
+      }
+
+      const totalVatAmount = Object.values(vatBreakdown).reduce(
+        (sum, rate) => sum + rate.amount,
+        0
+      );
+
+      const total = subtotal + totalVatAmount;
+
+      return { subtotal, total, vatBreakdown };
     };
 
-    const { subtotal, vatAmount, total } = calculateTotals();
+    const { subtotal, total, vatBreakdown } = calculateTotals();
 
     useEffect(() => {
       const generateQrCodeAsDataUrl = async () => {
@@ -88,14 +114,20 @@ const InvoicePrintable = React.forwardRef(
             <tr>
               <td style={{ width: '20%', verticalAlign: 'top' }}>
                 {supplier.logoUrl && (
-                  <div style={{ width: '20mm', height: '20mm', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      width: '20mm',
+                      height: '20mm',
+                      textAlign: 'center',
+                    }}
+                  >
                     <img
                       src={supplier.logoUrl}
                       alt="Logo"
                       style={{
                         maxWidth: '100%',
                         maxHeight: '100%',
-                        objectFit: 'contain'
+                        objectFit: 'contain',
                       }}
                       crossOrigin="anonymous"
                     />
@@ -117,18 +149,27 @@ const InvoicePrintable = React.forwardRef(
                   {translateInCzech('invoice_number')}: {invoice.number}
                 </div>
               </td>
-              <td style={{ width: '30%', textAlign: 'right', verticalAlign: 'top' }}>
+              <td
+                style={{
+                  width: '30%',
+                  textAlign: 'right',
+                  verticalAlign: 'top',
+                }}
+              >
                 <div style={{ fontSize: '9pt' }}>
                   <div style={{ marginBottom: '1mm' }}>
-                    <strong>{translateInCzech('issueDate')}:</strong> {invoice.issueDate}
+                    <strong>{translateInCzech('issueDate')}:</strong>{' '}
+                    {invoice.issueDate}
                   </div>
                   {vatSettings?.enabled && (
                     <div style={{ marginBottom: '1mm' }}>
-                      <strong>{translateInCzech('taxableDate')}:</strong> {invoice.duzpDate}
+                      <strong>{translateInCzech('taxableDate')}:</strong>{' '}
+                      {invoice.duzpDate}
                     </div>
                   )}
                   <div>
-                    <strong>{translateInCzech('dueDate')}:</strong> {invoice.issueDate}
+                    <strong>{translateInCzech('dueDate')}:</strong>{' '}
+                    {invoice.dueDate}
                   </div>
                 </div>
               </td>
@@ -239,15 +280,19 @@ const InvoicePrintable = React.forwardRef(
         >
           <tbody>
             <tr>
-              <td style={{ width: '50%', verticalAlign: 'top', fontSize: '8pt' }}>
+              <td
+                style={{ width: '50%', verticalAlign: 'top', fontSize: '8pt' }}
+              >
                 <div style={{ marginBottom: '1mm' }}>
-                  <strong>{translateInCzech('bankAccount')}:</strong> {supplier.bankAccount}
+                  <strong>{translateInCzech('bankAccount')}:</strong>{' '}
+                  {supplier.bankAccount}
                 </div>
                 <div style={{ marginBottom: '1mm' }}>
-                  <strong>{translateInCzech('variableSymbol')}:</strong> {invoice.number.replace(/-/g, '')}
+                  <strong>{translateInCzech('variableSymbol')}:</strong>{' '}
+                  {invoice.number.replace(/-/g, '')}
                 </div>
                 <div>
-                  <strong>{translateInCzech('paymentMethod')}:</strong> hotově
+                  <strong>{translateInCzech('paymentMethod')}:</strong> {invoice.paymentMethod || 'Převodem'}
                 </div>
               </td>
               <td style={{ width: '50%', verticalAlign: 'top' }}>
@@ -275,18 +320,31 @@ const InvoicePrintable = React.forwardRef(
                   padding: '2mm',
                   border: '1px solid #000',
                   fontWeight: 'bold',
-                  width: '35%',
+                  width: '40%',
                 }}
               >
                 {translateInCzech('th_description')}
               </th>
+              {vatSettings.enabled && (
+                <th
+                  style={{
+                    textAlign: 'center',
+                    padding: '2mm',
+                    border: '1px solid #000',
+                    fontWeight: 'bold',
+                    width: '10%',
+                  }}
+                >
+                  % DPH
+                </th>
+              )}
               <th
                 style={{
                   textAlign: 'center',
                   padding: '2mm',
                   border: '1px solid #000',
                   fontWeight: 'bold',
-                  width: '12%',
+                  width: '10%',
                 }}
               >
                 {translateInCzech('th_quantity')}
@@ -297,7 +355,7 @@ const InvoicePrintable = React.forwardRef(
                   padding: '2mm',
                   border: '1px solid #000',
                   fontWeight: 'bold',
-                  width: '13%',
+                  width: '10%',
                 }}
               >
                 {translateInCzech('th_unit')}
@@ -308,7 +366,7 @@ const InvoicePrintable = React.forwardRef(
                   padding: '2mm',
                   border: '1px solid #000',
                   fontWeight: 'bold',
-                  width: '20%',
+                  width: '15%',
                 }}
               >
                 {translateInCzech('th_pricePerUnit')}
@@ -319,7 +377,7 @@ const InvoicePrintable = React.forwardRef(
                   padding: '2mm',
                   border: '1px solid #000',
                   fontWeight: 'bold',
-                  width: '20%',
+                  width: '15%',
                 }}
               >
                 {translateInCzech('th_total')}
@@ -339,6 +397,18 @@ const InvoicePrintable = React.forwardRef(
                   >
                     {item.description}
                   </td>
+                  {vatSettings.enabled && (
+                    <td
+                      style={{
+                        padding: '2mm',
+                        border: '1px solid #000',
+                        textAlign: 'center',
+                        verticalAlign: 'top',
+                      }}
+                    >
+                      {item.vatRate ?? vatSettings.rate ?? 21}%
+                    </td>
+                  )}
                   <td
                     style={{
                       padding: '2mm',
@@ -367,7 +437,8 @@ const InvoicePrintable = React.forwardRef(
                       verticalAlign: 'top',
                     }}
                   >
-                    {Number(item.pricePerUnit || 0).toFixed(2)} {translateInCzech('currency_czk')}
+                    {Number(item.pricePerUnit || 0).toFixed(2)}{' '}
+                    {translateInCzech('currency_czk')}
                   </td>
                   <td
                     style={{
@@ -377,7 +448,8 @@ const InvoicePrintable = React.forwardRef(
                       verticalAlign: 'top',
                     }}
                   >
-                    {Number(item.totalPrice || 0).toFixed(2)} {translateInCzech('currency_czk')}
+                    {Number(item.totalPrice || 0).toFixed(2)}{' '}
+                    {translateInCzech('currency_czk')}
                   </td>
                 </tr>
               ))}
@@ -388,47 +460,130 @@ const InvoicePrintable = React.forwardRef(
         <table style={{ width: '100%', marginBottom: '8mm' }}>
           <tbody>
             <tr>
-              <td style={{ width: '40%', verticalAlign: 'top' }}>
-                {/* QR kód jen pokud je bankovní převod a jsou všechny údaje */}
-                {supplier.bankAccount && total > 0 && supplier.paymentMethod !== 'hotově' && (
-                  qrCodeDataUrl ? (
+              <td style={{ width: '50%', verticalAlign: 'top' }}>
+                {supplier.bankAccount &&
+                  total > 0 &&
+                  (!invoice.paymentMethod ||
+                    invoice.paymentMethod !== 'hotově') &&
+                  (qrCodeDataUrl ? (
                     <div>
-                      <div style={{ width: '24mm', height: '24mm', border: '1px solid #ccc', padding: '1mm' }}>
+                      <div
+                        style={{
+                          width: '24mm',
+                          height: '24mm',
+                          border: '1px solid #ccc',
+                          padding: '1mm',
+                        }}
+                      >
                         <img
                           src={qrCodeDataUrl}
                           alt="QR platba"
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                          }}
                         />
                       </div>
-                      <div style={{ fontSize: '8pt', color: '#666', marginTop: '1mm' }}>
+                      <div
+                        style={{
+                          fontSize: '8pt',
+                          color: '#666',
+                          marginTop: '1mm',
+                        }}
+                      >
                         {translateInCzech('qrPayment')}
                       </div>
                     </div>
                   ) : (
                     <div style={{ width: '24mm', height: '24mm' }}></div>
-                  )
-                )}
+                  ))}
               </td>
-              <td style={{ width: '60%', verticalAlign: 'top' }}>
-                <table style={{ width: '100%', fontSize: '9pt', marginLeft: 'auto', maxWidth: '60%' }}>
+              <td style={{ width: '50%', verticalAlign: 'bottom' }}>
+                {/* --- KLÍČOVÁ ZMĚNA: Nová tabulka pro rozpis DPH a celkovou částku --- */}
+                <table
+                  style={{
+                    width: '100%',
+                    fontSize: '9pt',
+                    borderCollapse: 'collapse',
+                  }}
+                >
                   <tbody>
-                    {vatSettings?.enabled && (
-                      <tr>
-                        <td style={{ padding: '0.5mm 0' }}>
-                          {translateInCzech('vat_rate_display', { rate: vatSettings.rate })}:
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '0.5mm 0' }}>
-                          {vatAmount.toFixed(2)} {translateInCzech('currency_czk')}
-                        </td>
-                      </tr>
-                    )}
+                    <tr>
+                      <td style={{ padding: '0.5mm 0' }}>
+                        {translateInCzech('subtotal')}:
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '0.5mm 0' }}>
+                        {subtotal.toFixed(2)} {translateInCzech('currency_czk')}
+                      </td>
+                    </tr>
+
+                    {vatSettings.enabled &&
+                      Object.keys(vatBreakdown).length > 0 && (
+                        <tr>
+                          <td colSpan="2" style={{ paddingTop: '2mm' }}>
+                            <table
+                              style={{
+                                width: '100%',
+                                fontSize: '8pt',
+                                borderCollapse: 'collapse',
+                              }}
+                            >
+                              <thead>
+                                <tr style={{ fontWeight: 'bold' }}>
+                                  <td style={{ paddingBottom: '1mm' }}>
+                                    Rekapitulace DPH
+                                  </td>
+                                  <td
+                                    style={{
+                                      textAlign: 'right',
+                                      paddingBottom: '1mm',
+                                    }}
+                                  >
+                                    Základ daně
+                                  </td>
+                                  <td
+                                    style={{
+                                      textAlign: 'right',
+                                      paddingBottom: '1mm',
+                                    }}
+                                  >
+                                    DPH
+                                  </td>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(vatBreakdown)
+                                  .sort(
+                                    ([rateA], [rateB]) =>
+                                      Number(rateA) - Number(rateB)
+                                  )
+                                  .map(([rate, data]) => (
+                                    <tr key={rate}>
+                                      <td>Sazba {rate}%</td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        {data.base.toFixed(2)}{' '}
+                                        {translateInCzech('currency_czk')}
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        {data.amount.toFixed(2)}{' '}
+                                        {translateInCzech('currency_czk')}
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+
                     <tr>
                       <td
                         style={{
-                          padding: '1mm 0',
+                          padding: '2mm 0 1mm 0',
                           borderTop: '1px solid #000',
                           fontWeight: 'bold',
-                          fontSize: '10pt',
+                          fontSize: '11pt',
                         }}
                       >
                         {translateInCzech('totalToPay')}:
@@ -436,10 +591,10 @@ const InvoicePrintable = React.forwardRef(
                       <td
                         style={{
                           textAlign: 'right',
-                          padding: '1mm 0',
+                          padding: '2mm 0 1mm 0',
                           borderTop: '1px solid #000',
                           fontWeight: 'bold',
-                          fontSize: '10pt',
+                          fontSize: '11pt',
                         }}
                       >
                         {total.toFixed(2)} {translateInCzech('currency_czk')}
