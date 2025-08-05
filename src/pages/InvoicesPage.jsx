@@ -31,6 +31,7 @@ import ReactDOM from 'react-dom/client';
 import * as ReactDOMPortal from 'react-dom';
 import ConfirmModal from '../components/ConfirmModal.jsx';
 import { useTranslation } from 'react-i18next';
+import QRCode from 'qrcode';
 
 // Lokální funkce pro generování čísel dokumentů (náhrada za Netlify funkci)
 const generateNextDocumentNumber = (existingNumbers) => {
@@ -475,6 +476,47 @@ const PreviewModal = ({ isOpen, onClose, children }) => {
   );
 };
 
+// --- NOVÁ FUNKCE PRO PŘEVOD ČÍSLA ÚČTU NA IBAN ---
+const convertToIBAN = (accountString) => {
+  if (!accountString || !accountString.includes('/') || accountString.length < 3) {
+    return ''; // Základní validace
+  }
+
+  try {
+    const [mainPart, bankCode] = accountString.split('/');
+    const [prefix, number] = mainPart.includes('-')
+      ? mainPart.split('-')
+      : ['', mainPart];
+
+    // 1. Zformátování částí a doplnění nul
+    const paddedBankCode = bankCode.trim().padStart(4, '0');
+    const paddedPrefix = prefix.trim().padStart(6, '0');
+    const paddedNumber = number.trim().padStart(10, '0');
+
+    // Sestavení BBAN (základní číslo účtu pro výpočet)
+    const bban = paddedBankCode + paddedPrefix + paddedNumber;
+
+    // 2. Přidání kódu země a '00' pro výpočet kontrolních číslic
+    const checkString = bban + '123500'; // CZ převedeno na čísla: C=12, Z=35
+
+    // 3. Výpočet zbytku po dělení 97 (modulo 97)
+    // Musíme to dělat po částech, protože číslo je příliš velké pro standardní JS
+    let remainder = 0;
+    for (let i = 0; i < checkString.length; i++) {
+      remainder = (remainder * 10 + parseInt(checkString[i], 10)) % 97;
+    }
+
+    // 4. Výpočet kontrolních číslic
+    const checkDigits = (98 - remainder).toString().padStart(2, '0');
+
+    // 5. Sestavení finálního IBANu
+    return `CZ${checkDigits}${bban}`;
+  } catch (error) {
+    console.error("Chyba při konverzi na IBAN:", error);
+    return ''; // V případě chyby vrátíme prázdný řetězec
+  }
+};
+
 const StatusBadge = ({ status }) => {
   const { t } = useTranslation();
   const styles = {
@@ -506,6 +548,38 @@ const InvoicePreview = ({
   calculateTotals,
 }) => {
   const { t } = useTranslation();
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+
+  useEffect(() => {
+    const generateQrCode = async () => {
+      const { total } = calculateTotals(invoice, vatSettings);
+      const amount = total.toFixed(2);
+      const vs = invoice.number.replace(/\D/g, '');
+  
+      // --- ZAČÁTEK NOVÉ ROBUSTNÍ LOGIKY ---
+      const bbanAccount = (supplier.bankAccount || '').trim();
+const ibanAccount = convertToIBAN(bbanAccount);
+
+if (!ibanAccount || !amount || !vs || total <= 0 || (invoice.paymentMethod === 'Hotově')) {
+  setQrCodeDataUrl('');
+  return;
+}
+
+const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
+  
+      try {
+        const dataUrl = await QRCode.toDataURL(paymentString, { errorCorrectionLevel: 'M', width: 200 });
+        setQrCodeDataUrl(dataUrl);
+      } catch (err) {
+        console.error('Chyba při generování QR kódu v náhledu:', err);
+        setQrCodeDataUrl('');
+      }
+    };
+  
+    if (invoice && supplier) {
+       generateQrCode();
+    }
+  }, [invoice, supplier, vatSettings, calculateTotals]);
 
   if (!supplier || !vatSettings || !invoice) {
     return (
@@ -520,39 +594,6 @@ const InvoicePreview = ({
     invoice,
     vatSettings
   );
-
-  const generatePaymentQR = (invoice, supplier) => {
-    const amount = total.toFixed(2);
-    const vs = invoice.number.replace(/\D/g, '');
-    const bankAccount = supplier.bankAccount || '';
-
-    if (!bankAccount || !amount || !vs) return null;
-
-    const paymentString = `SPD*1.0*ACC:${bankAccount.replace(
-      '/',
-      '-'
-    )}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
-
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-      paymentString
-    )}`;
-
-    return (
-      <div className="flex flex-col items-start">
-        <div className="w-24 h-24 border border-gray-300 bg-white p-1">
-          <img
-            src={qrUrl}
-            alt="QR platba"
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-        </div>
-        <div className="text-xs text-gray-600 mt-1">{t('qrPayment')}</div>
-      </div>
-    );
-  };
 
   return (
     <div
@@ -636,7 +677,7 @@ const InvoicePreview = ({
             {t('variableSymbol')}: {invoice.number.replace(/-/g, '')}
           </div>
           <div>
-            {t('paymentMethod')}: {supplier.paymentMethod}
+            {t('paymentMethod')}: {invoice.paymentMethod || 'Převodem'}
           </div>
         </div>
         <div className="space-y-1 text-sm">
@@ -693,7 +734,18 @@ const InvoicePreview = ({
       </div>
 
       <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
-        <div>{generatePaymentQR(invoice, supplier)}</div>
+      {qrCodeDataUrl && (
+  <div className="flex flex-col items-start">
+    <div className="w-24 h-24 border border-gray-300 bg-white p-1">
+      <img
+        src={qrCodeDataUrl}
+        alt="QR platba"
+        className="w-full h-full object-contain"
+      />
+    </div>
+    <div className="text-xs text-gray-600 mt-1">{t('qrPayment')}</div>
+  </div>
+)}
         {/* --- KLÍČOVÁ ZMĚNA: Nové zobrazení rozpisu DPH --- */}
         <div className="w-full md:w-80 space-y-1">
           <div className="grid grid-cols-2 gap-4 py-1">
