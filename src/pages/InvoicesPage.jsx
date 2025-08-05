@@ -1489,7 +1489,7 @@ const InvoicesPage = ({
                             title={t('common.print')}
                           >
                             <Printer size={16} />
-                            Tisk
+                            {t('common.print')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1501,7 +1501,7 @@ const InvoicesPage = ({
                             title={t('common.download_pdf')}
                           >
                             <Download size={16} />
-                            PDF
+                            {t('common.download_pdf')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1513,7 +1513,7 @@ const InvoicesPage = ({
                             title={t('common.edit')}
                           >
                             <Edit size={16} />
-                            Upravit
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1525,7 +1525,7 @@ const InvoicesPage = ({
                             title={t('common.clone')}
                           >
                             <Copy size={16} />
-                            Kopie
+                            {t('common.clone')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1536,8 +1536,20 @@ const InvoicesPage = ({
                             className="flex items-center gap-1 px-3 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-sm font-medium transition-colors"
                             title={t('common.share')}
                           >
-                            <Copy size={16} />
-                            Sdílet
+                            <Share2 size={16} />
+                            {t('common.share')}
+                          </button>
+                            <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAction('view', invoice);
+                            }}
+                            className="flex items-center gap-1 px-3 py-2 bg-brown-100 text-brown-700 hover:bg-brown-200 rounded text-sm font-medium transition-colors"
+                            title={t('common.view')}
+                          >
+                            <Eye size={16} />
+                            {t('common.view')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -1548,8 +1560,8 @@ const InvoicesPage = ({
                             className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium transition-colors"
                             title={t('common.delete')}
                           >
-                            <Copy size={16} />
-                            Smazat
+                            <  Trash2 size={16} />
+                            {t('common.delete')}
                           </button>
                         </div>
                       </div>
