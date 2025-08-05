@@ -1545,7 +1545,7 @@ const InvoicesPage = ({
                               e.stopPropagation();
                               handleAction('view', invoice);
                             }}
-                            className="flex items-center gap-1 px-3 py-2 bg-brown-100 text-brown-700 hover:bg-brown-200 rounded text-sm font-medium transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 bg-pink-100 text-pink-700 hover:bg-pink-200 rounded text-sm font-medium transition-colors"
                             title={t('common.view')}
                           >
                             <Eye size={16} />
