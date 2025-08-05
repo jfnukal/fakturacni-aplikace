@@ -1,5 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import QRCode from 'qrcode';
+
+// --- NOVÁ FUNKCE PRO PŘEVOD ČÍSLA ÚČTU NA IBAN ---
+const convertToIBAN = (accountString) => {
+  if (!accountString || !accountString.includes('/') || accountString.length < 3) {
+    return ''; // Základní validace
+  }
+
+  try {
+    const [mainPart, bankCode] = accountString.split('/');
+    const [prefix, number] = mainPart.includes('-')
+      ? mainPart.split('-')
+      : ['', mainPart];
+
+    // 1. Zformátování částí a doplnění nul
+    const paddedBankCode = bankCode.trim().padStart(4, '0');
+    const paddedPrefix = prefix.trim().padStart(6, '0');
+    const paddedNumber = number.trim().padStart(10, '0');
+
+    // Sestavení BBAN (základní číslo účtu pro výpočet)
+    const bban = paddedBankCode + paddedPrefix + paddedNumber;
+
+    // 2. Přidání kódu země a '00' pro výpočet kontrolních číslic
+    const checkString = bban + '123500'; // CZ převedeno na čísla: C=12, Z=35
+
+    // 3. Výpočet zbytku po dělení 97 (modulo 97)
+    let remainder = 0;
+    for (let i = 0; i < checkString.length; i++) {
+      remainder = (remainder * 10 + parseInt(checkString[i], 10)) % 97;
+    }
+
+    // 4. Výpočet kontrolních číslic
+    const checkDigits = (98 - remainder).toString().padStart(2, '0');
+
+    // 5. Sestavení finálního IBANu
+    return `CZ${checkDigits}${bban}`;
+  } catch (error) {
+    console.error("Chyba při konverzi na IBAN:", error);
+    return ''; // V případě chyby vrátíme prázdný řetězec
+  }
+};
 
 const InvoicePrintable = React.forwardRef(
   ({ invoice, supplier, vatSettings }, ref) => {
@@ -51,39 +92,35 @@ const InvoicePrintable = React.forwardRef(
     const { subtotal, total, vatBreakdown } = calculateTotals();
 
     useEffect(() => {
-      const generateQrCodeAsDataUrl = async () => {
+      const generateQrCode = async () => {
+        const { total } = calculateTotals();
         const amount = total.toFixed(2);
         const vs = invoice.number.replace(/\D/g, '');
-        const bankAccount = supplier.bankAccount || '';
-        if (!bankAccount || !amount || !vs || total <= 0) {
-          setQrCodeDataUrl('');
-          return;
-        }
+    
+        // --- ZAČÁTEK NOVÉ ROBUSTNÍ LOGIKY ---
+        const bbanAccount = (supplier.bankAccount || '').trim();
+const ibanAccount = convertToIBAN(bbanAccount);
 
-        const paymentString = `SPD*1.0*ACC:${bankAccount.replace(
-          '/',
-          '-'
-        )}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-          paymentString
-        )}`;
+if (!ibanAccount || !amount || !vs || total <= 0 || (invoice.paymentMethod === 'Hotově')) {
+  setQrCodeDataUrl('');
+  return;
+}
 
+const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
+    
         try {
-          const response = await fetch(qrUrl);
-          const imageBlob = await response.blob();
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setQrCodeDataUrl(reader.result);
-          };
-          reader.readAsDataURL(imageBlob);
-        } catch (error) {
-          console.error('Chyba při stahování QR kódu:', error);
+          const dataUrl = await QRCode.toDataURL(paymentString, { errorCorrectionLevel: 'M', width: 200 });
+          setQrCodeDataUrl(dataUrl);
+        } catch (err) {
+          console.error('Chyba při generování QR kódu:', err);
           setQrCodeDataUrl('');
         }
       };
-
-      generateQrCodeAsDataUrl();
-    }, [invoice, supplier, total]);
+    
+      if (invoice && supplier) {
+        generateQrCode();
+      }
+    }, [invoice, supplier, vatSettings, calculateTotals]);
 
     const translateInCzech = (key, options = {}) =>
       t(key, { ...options, lng: 'cs' });
@@ -292,7 +329,8 @@ const InvoicePrintable = React.forwardRef(
                   {invoice.number.replace(/-/g, '')}
                 </div>
                 <div>
-                  <strong>{translateInCzech('paymentMethod')}:</strong> {invoice.paymentMethod || 'Převodem'}
+                  <strong>{translateInCzech('paymentMethod')}:</strong>{' '}
+                  {invoice.paymentMethod || 'Převodem'}
                 </div>
               </td>
               <td style={{ width: '50%', verticalAlign: 'top' }}>
