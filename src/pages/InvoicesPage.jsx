@@ -95,6 +95,7 @@ function getNewInvoice() {
         description: '',
         pricePerUnit: 0,
         totalPrice: 0,
+        vatRate: 21, // Defaultní DPH
       },
     ],
     status: 'draft',
@@ -299,39 +300,42 @@ const DeliveryNotesSelectionModal = ({
             backgroundColor: '#f9fafb',
           }}
         >
-          <tr>
-            <td style={{ padding: '24px', textAlign: 'right' }}>
-              <button
-                onClick={onClose}
-                style={{
-                  marginRight: '12px',
-                  padding: '8px 16px',
-                  color: '#374151',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                Zrušit
-              </button>
-              <button
-                onClick={handleCreateInvoice}
-                disabled={selectedDLs.length === 0}
-                style={{
-                  padding: '8px 24px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: selectedDLs.length === 0 ? 'not-allowed' : 'pointer',
-                  backgroundColor:
-                    selectedDLs.length === 0 ? '#d1d5db' : '#2563eb',
-                  color: selectedDLs.length === 0 ? '#6b7280' : 'white',
-                }}
-              >
-                Vytvořit fakturu z vybraných
-              </button>
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td style={{ padding: '24px', textAlign: 'right' }}>
+                <button
+                  onClick={onClose}
+                  style={{
+                    marginRight: '12px',
+                    padding: '8px 16px',
+                    color: '#374151',
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Zrušit
+                </button>
+                <button
+                  onClick={handleCreateInvoice}
+                  disabled={selectedDLs.length === 0}
+                  style={{
+                    padding: '8px 24px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor:
+                      selectedDLs.length === 0 ? 'not-allowed' : 'pointer',
+                    backgroundColor:
+                      selectedDLs.length === 0 ? '#d1d5db' : '#2563eb',
+                    color: selectedDLs.length === 0 ? '#6b7280' : 'white',
+                  }}
+                >
+                  Vytvořit fakturu z vybraných
+                </button>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -417,27 +421,23 @@ const ActionsMenu = ({ invoice, onAction, onClose, targetElement }) => {
           <li key={action.key}>
             <button
               onClick={() => {
-                console.log('🎯 Menu item clicked:', action.key, action.label); // DEBUG
-                console.log('🎯 onAction function:', typeof onAction); // DEBUG
-                console.log('🎯 invoice:', invoice?.id); // DEBUG
-                
                 onAction(action.key, invoice);
                 onClose();
               }}
-  className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${
-    action.className || ''
-  }`}
-  >
-    <action.icon size={16} />
-    <span>{action.label}</span>
-  </button>
-            </li>
-          ))}
-        </ul>
-      </div>,
-      document.body
-    );
-  };
+              className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors ${
+                action.className || ''
+              }`}
+            >
+              <action.icon size={16} />
+              <span>{action.label}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>,
+    document.body
+  );
+};
 
 const PreviewModal = ({ isOpen, onClose, children }) => {
   useEffect(() => {
@@ -515,8 +515,11 @@ const InvoicePreview = ({
     );
   }
 
-
-  const { subtotal, vatAmount, total } = calculateTotals(invoice, vatSettings);
+  // Použití opravené funkce pro výpočet
+  const { subtotal, total, vatBreakdown } = calculateTotals(
+    invoice,
+    vatSettings
+  );
 
   const generatePaymentQR = (invoice, supplier) => {
     const amount = total.toFixed(2);
@@ -691,6 +694,7 @@ const InvoicePreview = ({
 
       <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
         <div>{generatePaymentQR(invoice, supplier)}</div>
+        {/* --- KLÍČOVÁ ZMĚNA: Nové zobrazení rozpisu DPH --- */}
         <div className="w-full md:w-80 space-y-1">
           <div className="grid grid-cols-2 gap-4 py-1">
             <span>{t('subtotal')}:</span>
@@ -698,14 +702,17 @@ const InvoicePreview = ({
               {subtotal.toFixed(2)} {t('currency_czk')}
             </span>
           </div>
-          {vatSettings.enabled && (
-            <div className="grid grid-cols-2 gap-4 py-1">
-              <span>{t('vat_rate_display', { rate: vatSettings.rate })}:</span>
-              <span className="text-right font-medium">
-                {vatAmount.toFixed(2)} {t('currency_czk')}
-              </span>
-            </div>
-          )}
+
+          {vatSettings.enabled &&
+            Object.entries(vatBreakdown).map(([rate, data]) => (
+              <div className="grid grid-cols-2 gap-4 py-1 text-sm" key={rate}>
+                <span>{t('vat_rate_display', { rate: rate })}:</span>
+                <span className="text-right font-medium">
+                  {data.amount.toFixed(2)} {t('currency_czk')}
+                </span>
+              </div>
+            ))}
+
           <div className="border-t pt-2 mt-2">
             <div className="grid grid-cols-2 gap-4 text-lg font-bold">
               <span>{t('totalToPay')}:</span>
@@ -719,6 +726,7 @@ const InvoicePreview = ({
     </div>
   );
 };
+
 const InvoicesPage = ({
   currentUser,
   savedCustomers = [],
@@ -727,6 +735,8 @@ const InvoicesPage = ({
   deliveryNotes = [],
   creationRequest,
   setCreationRequest,
+  customerToPreselect,
+  clearCustomerToPreselect,
 }) => {
   const { t } = useTranslation();
   const [currentView, setCurrentView] = useState('list');
@@ -748,6 +758,13 @@ const InvoicesPage = ({
     setEditingInvoice(null);
     setCurrentInvoice(null);
   };
+
+  useEffect(() => {
+    if (customerToPreselect) {
+      handleAddNew(customerToPreselect);
+      clearCustomerToPreselect();
+    }
+  }, [customerToPreselect]);
 
   useEffect(() => {
     if (creationRequest === 'invoice') {
@@ -786,6 +803,7 @@ const InvoicesPage = ({
     try {
       const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
       const newInv = getNewInvoice();
+      newInv.paymentMethod = supplier.paymentMethod || 'Převodem';
       newInv.number = generateNextDocumentNumber(allNumbers);
 
       if (customer) {
@@ -820,9 +838,10 @@ const InvoicesPage = ({
     };
   };
 
+  // --- KLÍČOVÁ ZMĚNA: Přepracovaná funkce pro výpočet DPH ---
   const calculateTotals = (invoice, currentVatSettings) => {
     if (!invoice || !invoice.items || !Array.isArray(invoice.items)) {
-      return { subtotal: 0, vatAmount: 0, total: 0 };
+      return { subtotal: 0, total: 0, vatBreakdown: {} };
     }
 
     const subtotal = invoice.items.reduce(
@@ -830,18 +849,30 @@ const InvoicesPage = ({
       0
     );
 
-    let vatAmount = 0;
+    const vatBreakdown = {};
+
     if (currentVatSettings?.enabled) {
-      vatAmount = invoice.items.reduce((sum, item) => {
+      invoice.items.forEach((item) => {
         const itemTotal = Number(item.totalPrice) || 0;
-        const itemVatRate = item.vatRate || 21;
-        return sum + (itemTotal * itemVatRate) / 100;
-      }, 0);
+        const itemVatRate = item.vatRate || currentVatSettings.rate || 21;
+
+        if (!vatBreakdown[itemVatRate]) {
+          vatBreakdown[itemVatRate] = { base: 0, amount: 0 };
+        }
+
+        vatBreakdown[itemVatRate].base += itemTotal;
+        vatBreakdown[itemVatRate].amount += (itemTotal * itemVatRate) / 100;
+      });
     }
 
-    const total = subtotal + vatAmount;
+    const totalVatAmount = Object.values(vatBreakdown).reduce(
+      (sum, rate) => sum + rate.amount,
+      0
+    );
 
-    return { subtotal, vatAmount, total };
+    const total = subtotal + totalVatAmount;
+
+    return { subtotal, total, vatBreakdown };
   };
 
   const saveInvoiceFlow = async (invoiceData) => {
@@ -883,7 +914,6 @@ const InvoicesPage = ({
     }
   };
 
-    // Nová funkce pro vytvoření faktury z dodacích listů - OPRAVENO
   const handleCreateInvoiceFromDL = (selectedDeliveryNotes) => {
     try {
       const firstCustomer = selectedDeliveryNotes[0].customer;
@@ -914,13 +944,11 @@ const InvoicesPage = ({
       setCurrentInvoice(newInvoice);
       setEditingInvoice(null);
       setCurrentView('create');
-      setShowPreviewModal(false); // Zajistí, že se nezobrazí preview modal
+      setShowPreviewModal(false);
     } catch (error) {
       console.error('Error creating invoice from delivery notes:', error);
     }
   };
-
-  
 
   const cloneInvoice = (invoiceToClone) => {
     try {
@@ -971,7 +999,7 @@ const InvoicesPage = ({
     description: '',
     pricePerUnit: 0,
     totalPrice: 0,
-    vatRate: vatSettings?.rates?.[vatSettings.rates.length - 1] || 21, // nejvyšší dostupná sazba jako default
+    vatRate: vatSettings?.defaultRate || 21,
   });
 
   const addItemBelow = (currentItemId) => {
@@ -1117,7 +1145,6 @@ const InvoicesPage = ({
       try {
         window.print();
       } finally {
-        // Čekáme na dokončení tisku před odstraněním
         const cleanup = () => {
           if (printRootRef.current) {
             printRootRef.current.unmount();
@@ -1152,35 +1179,27 @@ const InvoicesPage = ({
   };
 
   const handleAction = (actionKey, invoice) => {
-    console.log('🔥 handleAction CALLED:', actionKey, invoice?.id); // DEBUG
-    
     switch (actionKey) {
       case 'edit':
-        console.log('📝 Calling editInvoice'); // DEBUG
         editInvoice(invoice);
         break;
       case 'view':
-        console.log('👁️ Calling setCurrentInvoice'); // DEBUG
         setCurrentInvoice(invoice);
         setShowPreviewModal(true);
         break;
-        case 'print':
-          console.log('🖨️ Calling handlePrint');
-          handlePrint(invoice);
-          break;
+      case 'print':
+        handlePrint(invoice);
+        break;
       case 'download':
-        console.log('💾 Calling handleDownloadPdf'); // DEBUG
         handleDownloadPdf(invoice);
         break;
-      case 'share':     
-        console.log('📤 Calling handleShare'); // DEBUG
+      case 'share':
         handleShare(invoice);
         break;
       case 'delete':
-        console.log('🗑️ Calling deleteInvoice'); // DEBUG
         deleteInvoice(invoice.id);
-        break;      
-        default:
+        break;
+      default:
         console.warn('❌ Unknown action:', actionKey);
         break;
     }
@@ -1193,16 +1212,14 @@ const InvoicesPage = ({
     const handleMenuToggle = (e) => {
       e.preventDefault();
       e.stopPropagation();
-    
-      console.log('🔘 Menu toggle, buttonRef:', buttonRef.current); // DEBUG
-    
+
       setTimeout(() => {
         setOpenMenu((prev) => {
-          const newState = prev.id === invoice.id
-            ? { id: null, ref: null }
-            : { id: invoice.id, ref: buttonRef.current };
-          
-          console.log('📝 Setting openMenu:', newState); // DEBUG
+          const newState =
+            prev.id === invoice.id
+              ? { id: null, ref: null }
+              : { id: invoice.id, ref: buttonRef.current };
+
           return newState;
         });
       }, 0);
@@ -1211,17 +1228,14 @@ const InvoicesPage = ({
     return (
       <div className="relative">
         <button
-  ref={buttonRef}
-  onTouchStart={(e) => e.stopPropagation()}
-  onClick={(e) => {
-    console.log('🔘 Button ... clicked!'); // DEBUG - mělo by se vypsat
-    handleMenuToggle(e);
-  }}
-  className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
-  title="Další akce"
->
-  <MoreVertical size={20} />
-</button>
+          ref={buttonRef}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={handleMenuToggle}
+          className="p-2 text-gray-600 hover:bg-gray-200 rounded-md active:bg-gray-300 transition-colors"
+          title="Další akce"
+        >
+          <MoreVertical size={20} />
+        </button>
         {isMenuOpen && (
           <ActionsMenu
             invoice={invoice}
@@ -1473,7 +1487,7 @@ const InvoicesPage = ({
                             <Copy size={16} />
                             Sdílet
                           </button>
-                           <button
+                          <button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -1485,7 +1499,6 @@ const InvoicesPage = ({
                             <Copy size={16} />
                             Smazat
                           </button>
-                          {/* <MoreActionsButton invoice={invoice} /> */}
                         </div>
                       </div>
                     </div>
@@ -1538,28 +1551,6 @@ const InvoicesPage = ({
                           >
                             <Printer size={18} />
                           </button>
-                          {/* <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('download', invoice);
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                title={t('common.download_pdf')}
-              >
-                <Download size={18} />
-              </button> */}
-                          {/* <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleAction('view', invoice);
-                }}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                title={t('common.view')}
-              >
-                <Eye size={18} />
-              </button> */}
                           <button
                             onClick={(e) => {
                               e.preventDefault();
@@ -1707,7 +1698,8 @@ const InvoicesPage = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('invoices_page.form.due_days_info')}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('invoices_page.form.due_days_info')}
                 </label>
                 <input
                   type="number"
@@ -1723,6 +1715,24 @@ const InvoicesPage = ({
                   }}
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('paymentMethod')}
+                </label>
+                <select
+                  value={currentInvoice.paymentMethod || 'Převodem'}
+                  onChange={(e) =>
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      paymentMethod: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="Převodem">Převodem</option>
+                  <option value="Hotově">Hotově</option>
+                </select>
               </div>
             </div>
 
@@ -1940,17 +1950,17 @@ const InvoicesPage = ({
                             DPH
                           </label>
                           <select
-                            value={item.vatRate || 21}
+                            value={item.vatRate ?? 21}
                             onChange={(e) =>
                               updateItem(
                                 item.id,
                                 'vatRate',
-                                parseInt(e.target.value)
+                                parseInt(e.target.value, 10)
                               )
                             }
                             className="w-full px-2 py-1 border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
-                            {(vatSettings.rates || [21]).map((rate) => (
+                            {[21, 12, 0].map((rate) => (
                               <option key={rate} value={rate}>
                                 {rate}%
                               </option>
