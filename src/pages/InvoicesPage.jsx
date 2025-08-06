@@ -677,7 +677,7 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
             {t('variableSymbol')}: {invoice.number.replace(/-/g, '')}
           </div>
           <div>
-            {t('paymentMethod')}: {invoice.paymentMethod || 'Převodem'}
+            {t('payment_methods.label')}: {invoice.paymentMethod === 'Hotově' ? t('payment_methods.cash') : t('payment_methods.transfer')}
           </div>
         </div>
         <div className="space-y-1 text-sm">
@@ -1781,21 +1781,21 @@ const InvoicesPage = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('paymentMethod')}
-                </label>
-                <select
-                  value={currentInvoice.paymentMethod || 'Převodem'}
-                  onChange={(e) =>
-                    setCurrentInvoice({
-                      ...currentInvoice,
-                      paymentMethod: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="Převodem">Převodem</option>
-                  <option value="Hotově">Hotově</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('payment_methods.label')}
+                  </label>
+                  <select
+                    value={currentInvoice.paymentMethod || 'Převodem'}
+                    onChange={(e) =>
+                      setCurrentInvoice({
+                        ...currentInvoice,
+                        paymentMethod: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                  <option value="Převodem">{t('payment_methods.transfer')}</option>
+                  <option value="Hotově">{t('payment_methods.cash')}</option>
                 </select>
               </div>
             </div>
