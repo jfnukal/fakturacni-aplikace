@@ -73,9 +73,6 @@ const DeliveryNotesPage = ({ supplier, savedCustomers, products, vatSettings, cr
   const [currentDeliveryNote, setCurrentDeliveryNote] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Přidání CSS stylů pro tisk - již není potřeba, používáme globální CSS z index.css
-  // useEffect pro styly odstraněn
-
   useEffect(() => {
     if (creationRequest === 'delivery_note') {
       handleAddNew();
@@ -419,7 +416,7 @@ const getNextBusinessDay = () => {
                                           title={!note.customer ? 'Dodací list nemá vybraného odběratele' : t('common.print')}
                                         >
                                           <Printer size={16} />
-                                          Tisk
+                                          {t('common.print')}
                                         </button>
                                         <button 
                                           onClick={() => handleDownloadPdf(note)} 
@@ -427,7 +424,7 @@ const getNextBusinessDay = () => {
                                           title={t('common.download_pdf')}
                                         >
                                           <Download size={16} />
-                                          PDF
+                                          {t('common.download_pdf')}
                                         </button>
                                         <button 
                                           onClick={() => handleEdit(note)} 
@@ -435,7 +432,7 @@ const getNextBusinessDay = () => {
                                           title={t('common.edit')}
                                         >
                                           <Edit size={16} />
-                                          Upravit
+                                          {t('common.edit')}
                                         </button>
                                         <button 
                                           onClick={() => handleClone(note)} 
@@ -443,7 +440,7 @@ const getNextBusinessDay = () => {
                                           title={t('common.clone')}
                                         >
                                           <Copy size={16} />
-                                          Kopie
+                                          {t('common.clone')}
                                         </button>
                                         <button 
                                           onClick={() => handleDelete(note.id)} 
@@ -451,7 +448,7 @@ const getNextBusinessDay = () => {
                                           title={t('common.delete')}
                                         >
                                           <Trash2 size={16} />
-                                          Smazat
+                                          {t('common.delete')}
                                         </button>
                                     </div>
                                 </div>
