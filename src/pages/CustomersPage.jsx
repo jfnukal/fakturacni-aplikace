@@ -1,5 +1,6 @@
 // Soubor: src/pages/CustomersPage.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -12,14 +13,8 @@ import {
 import { Plus, FileText, Edit, Trash2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const CustomersPage = ({
-  savedCustomers,
-  setActiveTab,
-  creationRequest,
-  setCreationRequest,
-  selectCustomerForNewInvoice,
-}) => {
-  // ZDE JE KLÍČOVÁ KONTROLA: Musí zde být { t }, aby se z objektu vytáhla překladová funkce.
+const CustomersPage = ({ savedCustomers, creationRequest, setCreationRequest, selectCustomerForNewInvoice }) => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const [customerView, setCustomerView] = useState('list');
@@ -115,6 +110,7 @@ const CustomersPage = ({
     if (selectCustomerForNewInvoice) {
       selectCustomerForNewInvoice(customer);
     }
+    navigate('/faktury'); // Místo setActiveTab
   };
 
   return (
