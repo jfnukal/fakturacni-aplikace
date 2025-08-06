@@ -1,4 +1,3 @@
-// Soubor: src/components/CreationMenu.jsx
 import React, { useState } from 'react';
 import { Plus, X, FileText, ListOrdered, Building, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -13,14 +12,12 @@ const CreationMenu = ({ onRequestNew }) => {
   };
 
   const menuItems = [
-    { type: 'product', label: t('products_page.add_item'), icon: Tag },
     { type: 'invoice', label: t('invoices_page.new'), icon: FileText },
     { type: 'delivery_note', label: t('delivery_notes_page.new'), icon: ListOrdered },
     { type: 'customer', label: t('customers_page.new'), icon: Building },
   ];
 
   return (
-    // ZDE JE KLÍČOVÁ ZMĚNA: Přidali jsme responzivní třídy pro změnu pozice na mobilu
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
       {/* Menu s položkami, které se zobrazí po kliknutí */}
       <div
