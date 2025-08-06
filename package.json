@@ -25,6 +25,7 @@
     "react-hot-toast": "^2.5.2",
     "react-i18next": "^15.6.1",
     "react-imask": "^7.6.1",
+    "react-router-dom": "^7.7.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
