@@ -829,10 +829,10 @@ const InvoicesPage = ({
 
   useEffect(() => {
     if (customerToPreselect) {
-      handleAddNew(customerToPreselect);
-      clearCustomerToPreselect();
+      handleAddNew(customerToPreselect); 
+      clearCustomerToPreselect(); 
     }
-  }, [customerToPreselect]);
+}, [customerToPreselect]);
 
   useEffect(() => {
     if (creationRequest === 'invoice') {
