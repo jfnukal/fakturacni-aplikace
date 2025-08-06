@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase';
 import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
-import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { Routes, Route, NavLink, Navigate, useNavigate } from 'react-router-dom';
 import LoginPage from './components/LoginPage.jsx';
 import InvoicesPage from './pages/InvoicesPage.jsx';
 import CustomersPage from './pages/CustomersPage.jsx';
@@ -18,6 +18,7 @@ import LanguageSwitcher from './components/LanguageSwitcher.jsx';
 const App = () => {
   const { currentUser, logout } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [savedCustomers, setSavedCustomers] = useState([]);
   const [supplier, setSupplier] = useState(null);
   const [vatSettings, setVatSettings] = useState(null);
@@ -27,9 +28,8 @@ const App = () => {
   const [appLoading, setAppLoading] = useState(true);
   const [customerForNewInvoice, setCustomerForNewInvoice] = useState(null);
 
-  const handleSelectCustomerForNewInvoice = (customer) => {
-    setCustomerForNewInvoice(customer); // Zapamatuje si zákazníka
-    setActiveTab('invoices');           // Přepne na faktury
+   const handleSelectCustomerForNewInvoice = (customer) => {
+    setCustomerForNewInvoice(customer);
   };
 
   useEffect(() => {
@@ -74,9 +74,17 @@ const App = () => {
   );
 
   const handleRequestNew = (itemType) => {
-    const tabMap = { invoice: 'invoices', delivery_note: 'delivery_notes', customer: 'customers', product: 'products' };
-    setActiveTab(tabMap[itemType]);
-    setCreationRequest(itemType);
+    const pathMap = { 
+      invoice: '/faktury', 
+      delivery_note: '/dodaci-listy', 
+      customer: '/zakaznici', 
+      product: '/produkty' 
+    };
+  
+    if (pathMap[itemType]) {
+      navigate(pathMap[itemType]); // Místo setActiveTab použijeme navigate
+      setCreationRequest(itemType);
+    }
   };
 
   if (!currentUser) {
@@ -108,9 +116,9 @@ const App = () => {
         {/* ZDE JE ZMĚNA: Větší spodní padding, aby se nic nepřekrývalo */}
         <div className="p-3 md:p-6 pb-32">
           <Routes>
-            <Route path="/faktury" element={<InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} />} />
+            <Route path="/faktury" element={<InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} customerToPreselect={customerForNewInvoice} clearCustomerToPreselect={() => setCustomerForNewInvoice(null)} />} />
             <Route path="/dodaci-listy" element={<DeliveryNotesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier} savedCustomers={savedCustomers} products={products} vatSettings={vatSettings} />} />
-            <Route path="/zakaznici" element={<CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} />} />
+            <Route path="/zakaznici" element={<CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} selectCustomerForNewInvoice={handleSelectCustomerForNewInvoice} />} />
             <Route path="/produkty" element={<ProductsPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings} products={products} />} />
             <Route path="/nastaveni" element={<SettingsPage currentUser={currentUser} savedCustomers={savedCustomers} products={products} deliveryNotes={deliveryNotes} />} />
 
