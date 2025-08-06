@@ -478,7 +478,11 @@ const PreviewModal = ({ isOpen, onClose, children }) => {
 
 // --- NOVÁ FUNKCE PRO PŘEVOD ČÍSLA ÚČTU NA IBAN ---
 const convertToIBAN = (accountString) => {
-  if (!accountString || !accountString.includes('/') || accountString.length < 3) {
+  if (
+    !accountString ||
+    !accountString.includes('/') ||
+    accountString.length < 3
+  ) {
     return ''; // Základní validace
   }
 
@@ -512,7 +516,7 @@ const convertToIBAN = (accountString) => {
     // 5. Sestavení finálního IBANu
     return `CZ${checkDigits}${bban}`;
   } catch (error) {
-    console.error("Chyba při konverzi na IBAN:", error);
+    console.error('Chyba při konverzi na IBAN:', error);
     return ''; // V případě chyby vrátíme prázdný řetězec
   }
 };
@@ -555,29 +559,38 @@ const InvoicePreview = ({
       const { total } = calculateTotals(invoice, vatSettings);
       const amount = total.toFixed(2);
       const vs = invoice.number.replace(/\D/g, '');
-  
+
       // --- ZAČÁTEK NOVÉ ROBUSTNÍ LOGIKY ---
       const bbanAccount = (supplier.bankAccount || '').trim();
-const ibanAccount = convertToIBAN(bbanAccount);
+      const ibanAccount = convertToIBAN(bbanAccount);
 
-if (!ibanAccount || !amount || !vs || total <= 0 || (invoice.paymentMethod === 'Hotově')) {
-  setQrCodeDataUrl('');
-  return;
-}
+      if (
+        !ibanAccount ||
+        !amount ||
+        !vs ||
+        total <= 0 ||
+        invoice.paymentMethod === 'Hotově'
+      ) {
+        setQrCodeDataUrl('');
+        return;
+      }
 
-const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
-  
+      const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktura ${invoice.number}*X-VS:${vs}`;
+
       try {
-        const dataUrl = await QRCode.toDataURL(paymentString, { errorCorrectionLevel: 'M', width: 200 });
+        const dataUrl = await QRCode.toDataURL(paymentString, {
+          errorCorrectionLevel: 'M',
+          width: 200,
+        });
         setQrCodeDataUrl(dataUrl);
       } catch (err) {
         console.error('Chyba při generování QR kódu v náhledu:', err);
         setQrCodeDataUrl('');
       }
     };
-  
+
     if (invoice && supplier) {
-       generateQrCode();
+      generateQrCode();
     }
   }, [invoice, supplier, vatSettings, calculateTotals]);
 
@@ -677,7 +690,10 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
             {t('variableSymbol')}: {invoice.number.replace(/-/g, '')}
           </div>
           <div>
-            {t('payment_methods.label')}: {invoice.paymentMethod === 'Hotově' ? t('payment_methods.cash') : t('payment_methods.transfer')}
+            {t('payment_methods.label')}:{' '}
+            {invoice.paymentMethod === 'Hotově'
+              ? t('payment_methods.cash')
+              : t('payment_methods.transfer')}
           </div>
         </div>
         <div className="space-y-1 text-sm">
@@ -734,18 +750,18 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
       </div>
 
       <div className="flex flex-col-reverse md:flex-row justify-between items-start md:items-end gap-8 mt-8">
-      {qrCodeDataUrl && (
-  <div className="flex flex-col items-start">
-    <div className="w-24 h-24 border border-gray-300 bg-white p-1">
-      <img
-        src={qrCodeDataUrl}
-        alt="QR platba"
-        className="w-full h-full object-contain"
-      />
-    </div>
-    <div className="text-xs text-gray-600 mt-1">{t('qrPayment')}</div>
-  </div>
-)}
+        {qrCodeDataUrl && (
+          <div className="flex flex-col items-start">
+            <div className="w-24 h-24 border border-gray-300 bg-white p-1">
+              <img
+                src={qrCodeDataUrl}
+                alt="QR platba"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="text-xs text-gray-600 mt-1">{t('qrPayment')}</div>
+          </div>
+        )}
         {/* --- KLÍČOVÁ ZMĚNA: Nové zobrazení rozpisu DPH --- */}
         <div className="w-full md:w-80 space-y-1">
           <div className="grid grid-cols-2 gap-4 py-1">
@@ -1389,7 +1405,7 @@ const InvoicesPage = ({
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
               >
                 <Plus size={16} />
-                <span>Vytvořit z DL</span>
+                <span>{t('invoices_page.create_from_dl')}</span>
               </button>
               <button
                 onClick={() => handleAddNew()}
@@ -1402,17 +1418,23 @@ const InvoicesPage = ({
           </div>
 
           <div className="bg-white border rounded-lg">
-            <div className="hidden md:grid grid-cols-5 p-4 bg-gray-50 font-medium">
-              <div className="col-span-2">
-                {t('invoices_page.table.customer')}
-              </div>
+            <div
+              className="hidden md:grid p-4 bg-gray-50 font-medium"
+              style={{
+                gridTemplateColumns: 'minmax(0, 1fr) 80px 155px 120px 180px',
+              }}
+            >
+              <div>{t('invoices_page.table.customer')}</div>
               <div className="text-center">
                 {t('invoices_page.table.number')}
               </div>
-              <div className="text-right">
+              <div className="text-center">
+                {t('invoices_page.table.issued')}
+              </div>
+              <div className="text-center">
                 {t('invoices_page.table.amount')}
               </div>
-              <div className="text-right pr-4">
+              <div className="text-center">
                 {t('invoices_page.table.actions')}
               </div>
             </div>
@@ -1539,7 +1561,7 @@ const InvoicesPage = ({
                             <Share2 size={16} />
                             {t('common.share')}
                           </button>
-                            <button
+                          <button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -1560,7 +1582,7 @@ const InvoicesPage = ({
                             className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium transition-colors"
                             title={t('common.delete')}
                           >
-                            <  Trash2 size={16} />
+                            <Trash2 size={16} />
                             {t('common.delete')}
                           </button>
                         </div>
@@ -1570,13 +1592,20 @@ const InvoicesPage = ({
                     {/* Desktop Layout */}
                     <div
                       onClick={() => editInvoice(invoice)}
-                      className="hidden md:grid md:grid-cols-5 items-center p-4 cursor-pointer transition-colors"
+                      className="hidden md:grid items-center p-4 cursor-pointer transition-colors"
+                      style={{
+                        gridTemplateColumns:
+                          'minmax(0, 1fr) 120px 100px 150px 180px',
+                      }}
                     >
-                      <div className="md:col-span-2">
+                      <div>
                         <div className="font-bold">{invoice.customer.name}</div>
                       </div>
                       <div className="text-sm text-gray-500 text-center">
                         {invoice.number}
+                      </div>
+                      <div className="text-sm text-gray-500 text-center">
+                        {invoice.issueDate}
                       </div>
                       <div className="text-right font-medium">
                         {(() => {
@@ -1599,7 +1628,7 @@ const InvoicesPage = ({
                         })()}
                       </div>
                       <div
-                        className="text-right"
+                        className="flex justify-center"
                         onTouchStart={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1781,20 +1810,22 @@ const InvoicesPage = ({
                 />
               </div>
               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('payment_methods.label')}
-                  </label>
-                  <select
-                    value={currentInvoice.paymentMethod || 'Převodem'}
-                    onChange={(e) =>
-                      setCurrentInvoice({
-                        ...currentInvoice,
-                        paymentMethod: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                  <option value="Převodem">{t('payment_methods.transfer')}</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('payment_methods.label')}
+                </label>
+                <select
+                  value={currentInvoice.paymentMethod || 'Převodem'}
+                  onChange={(e) =>
+                    setCurrentInvoice({
+                      ...currentInvoice,
+                      paymentMethod: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="Převodem">
+                    {t('payment_methods.transfer')}
+                  </option>
                   <option value="Hotově">{t('payment_methods.cash')}</option>
                 </select>
               </div>
