@@ -385,9 +385,9 @@ const getNextBusinessDay = () => {
                     // Použijeme naši novou, chytřejší funkci pro výpočet
                     const { totalWithoutVat, totalWithVat } = calculateTotals(note.items);
                     return (
-                        <tr key={note.id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <tr key={note.id} onClick={() => handleEdit(note)} className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer">
                             {/* Mobile Layout */}
-                            <td className="block md:hidden p-4">
+                            <td onClick={() => handleEdit(note)} className="block md:hidden p-4 cursor-pointer">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -404,7 +404,7 @@ const getNextBusinessDay = () => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 pt-2">
+                                    <div className="flex flex-wrap gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                                         <button 
                                           onClick={() => handlePrint(note)} 
                                           disabled={!note.customer}
@@ -469,7 +469,7 @@ const getNextBusinessDay = () => {
                             <td className="hidden md:table-cell p-4">
                                 <div className="flex gap-1 justify-center">
                                     <button 
-                                      onClick={() => handlePrint(note)} 
+                                      onClick={(e) => { e.stopPropagation(); handlePrint(note); }}  
                                       disabled={!note.customer}
                                       className={`p-2 rounded transition-colors ${
                                         !note.customer 
