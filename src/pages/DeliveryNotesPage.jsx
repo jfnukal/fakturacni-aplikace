@@ -467,7 +467,7 @@ const getNextBusinessDay = () => {
                                 )}
                             </td>
                             <td className="hidden md:table-cell p-4">
-                                <div className="flex gap-1 justify-center">
+                            <div className="flex gap-1 justify-center">
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); handlePrint(note); }}  
                                       disabled={!note.customer}
@@ -480,11 +480,11 @@ const getNextBusinessDay = () => {
                                     >
                                       <Printer size={18} />
                                     </button>
-                                    <button onClick={() => handleDownloadPdf(note)} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors" title={t('common.download_pdf')}><Download size={18} /></button>
-                                    <button onClick={() => handleShare(note)} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors" title={t('common.share')}><Share2 size={18} /></button>
-                                    <button onClick={() => handleClone(note)} className="p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors" title={t('common.clone')}><Copy size={18} /></button>
-                                    <button onClick={() => handleEdit(note)} className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors" title={t('common.edit')}><Edit size={18} /></button>
-                                    <button onClick={() => handleDelete(note.id)} className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors" title={t('common.delete')}><Trash2 size={18} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDownloadPdf(note); }} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors" title={t('common.download_pdf')}><Download size={18} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleShare(note); }} className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors" title={t('common.share')}><Share2 size={18} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleClone(note); }} className="p-2 text-purple-600 hover:bg-purple-100 rounded transition-colors" title={t('common.clone')}><Copy size={18} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(note); }} className="p-2 text-green-600 hover:bg-green-100 rounded transition-colors" title={t('common.edit')}><Edit size={18} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(note.id); }} className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors" title={t('common.delete')}><Trash2 size={18} /></button>
                                 </div>
                             </td>
                         </tr>
