@@ -1,8 +1,8 @@
-// Soubor: src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase';
 import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import LoginPage from './components/LoginPage.jsx';
 import InvoicesPage from './pages/InvoicesPage.jsx';
 import CustomersPage from './pages/CustomersPage.jsx';
@@ -18,7 +18,6 @@ import LanguageSwitcher from './components/LanguageSwitcher.jsx';
 const App = () => {
   const { currentUser, logout } = useAuth();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('invoices');
   const [savedCustomers, setSavedCustomers] = useState([]);
   const [supplier, setSupplier] = useState(null);
   const [vatSettings, setVatSettings] = useState(null);
@@ -59,10 +58,19 @@ const App = () => {
     return () => { unsubSettings(); unsubCustomers(); unsubProducts(); unsubDeliveryNotes(); };
   }, [currentUser]);
 
-  const TabButton = ({ id, children, icon: Icon }) => (
-    <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${ activeTab === id ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-800' }`} >
+  const NavButton = ({ to, children, icon: Icon }) => (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 transition-colors ${
+          isActive
+            ? 'bg-blue-50 border-blue-500 text-blue-700' // Styl pro aktivní odkaz
+            : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-800' // Styl pro neaktivní odkaz
+        }`
+      }
+    >
       <Icon size={16} /> <span className="hidden sm:inline">{children}</span>
-    </button>
+    </NavLink>
   );
 
   const handleRequestNew = (itemType) => {
@@ -90,27 +98,25 @@ const App = () => {
         </div>
       </div>
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="flex border-b bg-gray-50 overflow-x-auto">
-          <TabButton id="invoices" icon={FileText}>{t('invoices')}</TabButton>
-          <TabButton id="delivery_notes" icon={ListOrdered}>{t('delivery_notes')}</TabButton>
-          <TabButton id="customers" icon={Building}>{t('customers')}</TabButton>
-          <TabButton id="products" icon={Tag}>{t('products')}</TabButton>
-          <TabButton id="settings" icon={Settings}>{t('settings')}</TabButton>
-        </div>
+      <div className="flex border-b bg-gray-50 overflow-x-auto">           
+        <NavButton to="/faktury" icon={FileText}>{t('invoices')}</NavButton>
+        <NavButton to="/dodaci-listy" icon={ListOrdered}>{t('delivery_notes')}</NavButton>
+        <NavButton to="/zakaznici" icon={Building}>{t('customers')}</NavButton>
+        <NavButton to="/produkty" icon={Tag}>{t('products')}</NavButton>
+        <NavButton to="/nastaveni" icon={Settings}>{t('settings')}</NavButton>
+      </div>
         {/* ZDE JE ZMĚNA: Větší spodní padding, aby se nic nepřekrývalo */}
         <div className="p-3 md:p-6 pb-32">
-          {activeTab === 'invoices' && ( <InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} customerToPreselect={customerForNewInvoice} clearCustomerToPreselect={() => setCustomerForNewInvoice(null)} /> )}
-          {activeTab === 'delivery_notes' && ( <DeliveryNotesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier} savedCustomers={savedCustomers} products={products} vatSettings={vatSettings} /> )}
-          {activeTab === 'customers' && ( <CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} setActiveTab={setActiveTab} selectCustomerForNewInvoice={handleSelectCustomerForNewInvoice} /> )}
-          {activeTab === 'products' && ( <ProductsPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings} products={products} /> )}
-          {activeTab === 'settings' && (
-              <SettingsPage 
-                currentUser={currentUser}
-                savedCustomers={savedCustomers}
-                products={products}
-                deliveryNotes={deliveryNotes}
-              />
-            )}
+          <Routes>
+            <Route path="/faktury" element={<InvoicesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} savedCustomers={savedCustomers} supplier={supplier} vatSettings={vatSettings} deliveryNotes={deliveryNotes} />} />
+            <Route path="/dodaci-listy" element={<DeliveryNotesPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} currentUser={currentUser} supplier={supplier} savedCustomers={savedCustomers} products={products} vatSettings={vatSettings} />} />
+            <Route path="/zakaznici" element={<CustomersPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} savedCustomers={savedCustomers} />} />
+            <Route path="/produkty" element={<ProductsPage creationRequest={creationRequest} setCreationRequest={setCreationRequest} vatSettings={vatSettings} products={products} />} />
+            <Route path="/nastaveni" element={<SettingsPage currentUser={currentUser} savedCustomers={savedCustomers} products={products} deliveryNotes={deliveryNotes} />} />
+
+            {/* Tento řádek přesměruje uživatele na faktury, když zadá jen hlavní adresu */}
+            <Route path="*" element={<Navigate to="/faktury" />} />
+          </Routes>
         </div>
       </div>
       <CreationMenu onRequestNew={handleRequestNew} />
