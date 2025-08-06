@@ -100,6 +100,13 @@
       "confirm_delete": "Opravdu chcete smazat tohoto odběratele?"
     }
   },
+
+  "payment_methods": {
+    "label": "Způsob platby",
+    "transfer": "Převodem",
+    "cash": "Hotově"
+  },
+  
   "products_page": {
     "title": "Produkty a ceník",
     "add_item": "Přidat produkt",
