@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { IMaskInput } from 'react-imask';
 import DeliveryNotesImportTool from '../components/DeliveryNotesImportTool';
 import { Building } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // --- Funkce pro validaci českého čísla účtu ---
 const validateCzechBankAccount = (accountString) => {
@@ -110,6 +111,7 @@ const SettingsPage = ({
     console.log("KROK 6: Budu nastavovat nová data pro dodavatele:", aresData);
     setSupplier(prev => ({ ...prev, ...aresData }));
     console.log("KROK 7: Hotovo, stav by měl být aktualizován.");
+    toast.success('Údaje o firmě byly úspěšně načteny z ARESu!');
 
   } catch (error) {
     console.error("CHYBA V BLOKU CATCH:", error);
