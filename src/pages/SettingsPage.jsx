@@ -89,7 +89,7 @@ const SettingsPage = ({
     }
 
     const data = await response.json();
-    console.log("KROK 5: Zpracovaná data ve formátu JSON:", data);
+    console.log("Kompletní odpověď z ARESu:", data);
 
     if (!data || !data.obchodniJmeno) {
       console.error("CHYBA: Data z ARESu neobsahují obchodní jméno.");
