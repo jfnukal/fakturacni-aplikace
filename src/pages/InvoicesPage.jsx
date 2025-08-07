@@ -70,7 +70,7 @@ const cleanupDOMElement = (element, root) => {
   }
 };
 
-function getNewInvoice() {
+function getNewInvoice(vatSettings) {
   return {
     id: Date.now(),
     number: '',
@@ -96,7 +96,7 @@ function getNewInvoice() {
         description: '',
         pricePerUnit: 0,
         totalPrice: 0,
-        vatRate: 21, // Defaultní DPH
+        vatRate: vatSettings?.defaultRate ?? 21, 
       },
     ],
     status: 'draft',
@@ -829,10 +829,10 @@ const InvoicesPage = ({
 
   useEffect(() => {
     if (customerToPreselect) {
-      handleAddNew(customerToPreselect); 
-      clearCustomerToPreselect(); 
+      handleAddNew(customerToPreselect);
+      clearCustomerToPreselect();
     }
-}, [customerToPreselect]);
+  }, [customerToPreselect]);
 
   useEffect(() => {
     if (creationRequest === 'invoice') {
@@ -870,7 +870,7 @@ const InvoicesPage = ({
   const handleAddNew = (customer = null) => {
     try {
       const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
-      const newInv = getNewInvoice();
+      const newInv = getNewInvoice(vatSettings);
       newInv.paymentMethod = supplier.paymentMethod || 'Převodem';
       newInv.number = generateNextDocumentNumber(allNumbers);
 
@@ -995,12 +995,12 @@ const InvoicesPage = ({
           unit: 'ks',
           pricePerUnit: totalWithoutVat,
           totalPrice: totalWithoutVat,
-          vatRate: vatSettings?.rates?.[vatSettings.rates.length - 1] || 21,
+          vatRate: vatSettings?.defaultRate ?? 21,
         };
       });
 
       const allNumbers = invoices.map((inv) => inv.number).filter(Boolean);
-      const newInvoice = getNewInvoice();
+      const newInvoice = getNewInvoice(vatSettings);
       newInvoice.number = generateNextDocumentNumber(allNumbers);
       newInvoice.customer = firstCustomer;
       newInvoice.items = newItems;
