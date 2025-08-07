@@ -260,17 +260,20 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                         {translateInCzech('dic')}: {supplier.dic}
                       </div>
                     )}
-                    {vatSettings && !vatSettings.enabled && (
-                      <div style={{ fontSize: '8pt', fontWeight: 'bold' }}>
-                        {translateInCzech('notVatPayer')}
-                      </div>
-                    )}
-                    {/* Zobrazí se jen pro neplátce, kteří mají vyplněný úřad */}
-                                          {supplier.registeringAuthority && (
+                    {supplier.registeringAuthority && (
                         <div style={{ marginTop: '2mm', fontSize: '8pt' }}>
                           {`Fyzická osoba zapsaná v živnostenském rejstříku vedeném u ${supplier.registeringAuthority}`}
                         </div>
                       )}
+                  
+                    {/* --- PŘIDANÝ KÓD PRO ZOBRAZENÍ FINANČNÍHO ÚŘADU --- */}
+                    {supplier.financniUrad && (
+                      <div style={{ marginTop: '2mm', fontSize: '8pt' }}>
+                        Příslušný finanční úřad: {supplier.financniUrad}
+                      </div>
+                    )}
+                    {/* --- KONEC PŘIDANÉHO KÓDU --- */}
+                  
                   </div>
                 </div>
               </td>
