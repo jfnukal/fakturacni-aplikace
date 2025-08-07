@@ -63,6 +63,13 @@ exports.handler = async function (event, context) {
     const finalniAdresa = [ulice, ciselnaCast].filter(Boolean).join(' ').trim();
     const authority = data.zivnostenskyUrad ? data.zivnostenskyUrad.nazev : null;
 
+    // --- PŘIDANÁ LOGIKA PRO FINANČNÍ ÚŘAD ---
+    let financniUradNazev = null;
+    if (data.financniUrad === 358) { // Kód pro Moravskoslezský kraj
+      financniUradNazev = 'Finanční úřad pro Moravskoslezský kraj';
+    }
+    // --- KONEC PŘIDANÉ LOGIKY ---
+
     const responseData = {
       ico: data.ico,
       obchodniJmeno: data.obchodniJmeno,
@@ -72,6 +79,10 @@ exports.handler = async function (event, context) {
       city: sidlo.nazevObce || '',
       zivnostenskyUrad: {
           nazev: authority
+      },
+      // Přidáme nový objekt pro finanční úřad
+      financniUrad: {
+          nazev: financniUradNazev
       }
     };
     
