@@ -95,7 +95,7 @@ const SettingsPage = ({
         city: data.city,
         ico: data.ico,
         dic: data.dic || '',
-        registeringAuthority: data.zivnostenskyUrad?.nazev || '',
+        registeringAuthority: data.zivnostenskyUrad?.nazev || supplier.registeringAuthority || '',
         financniUrad: data.financniUrad?.nazev || '',
       };
 
@@ -332,6 +332,25 @@ const SettingsPage = ({
               className="mt-1 w-full p-2 border rounded"
             />
           </div>
+
+          <div className="md:col-span-6">
+  <label 
+    htmlFor="registering-authority" 
+    className="block text-sm font-medium text-gray-700"
+  >
+    Živnostenský úřad (doplňte, pokud ARES nenašel)
+  </label>
+  <input
+    type="text"
+    id="registering-authority"
+    placeholder="např. Městský úřad Bruntál"
+    value={supplier.registeringAuthority || ''}
+    onChange={(e) => 
+      setSupplier({ ...supplier, registeringAuthority: e.target.value })
+    }
+    className="mt-1 w-full p-2 border rounded"
+  />
+</div>
 
           {/* --- Nový, vizuálně sjednocený input pro bankovní účet --- */}
           <div className="md:col-span-3">
