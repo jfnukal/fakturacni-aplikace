@@ -102,17 +102,6 @@ const SettingsPage = ({
     }
 };
 
-    console.log("KROK 6: Budu nastavovat nová data pro dodavatele:", aresData);
-    setSupplier(prev => ({ ...prev, ...aresData }));
-    console.log("KROK 7: Hotovo, stav by měl být aktualizován.");
-    toast.success('Údaje o firmě byly úspěšně načteny z ARESu!');
-
-  } catch (error) {
-    console.error("CHYBA V BLOKU CATCH:", error);
-    alert('Došlo k chybě. Zkontrolujte prosím vývojářskou konzoli (F12) pro více detailů.');
-  }
-};
-
   const [prefix, setPrefix] = useState('');
   const [number, setNumber] = useState('');
   const [code, setCode] = useState('');
