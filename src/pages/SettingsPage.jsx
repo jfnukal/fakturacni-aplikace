@@ -78,13 +78,16 @@ const SettingsPage = ({
       if (!response.ok) {
         throw new Error(t('customers_page.alert.ares_error'));
       }
-      const data = await response.json(); // Data jsou již hotová a zpracovaná ze serveru
+      const data = await response.json();
+      
+      // ===== LOGOVÁNÍ 3: CO PŘIŠLO Z NAŠÍ SERVEROVÉ FUNKCE =====
+      console.log('[SettingsPage.jsx] PŘIJATÁ ZPRACOVANÁ ODPOVĚĎ ZE SERVERU:', data);
+
       if (!data || !data.obchodniJmeno) {
         alert(t('customers_page.alert.company_not_found'));
         return;
       }
       
-      // Použijeme již hotová data přímo z odpovědi
       const aresData = {
         name: data.obchodniJmeno,
         address: data.address,
@@ -95,6 +98,9 @@ const SettingsPage = ({
         registeringAuthority: data.zivnostenskyUrad?.nazev || '',
         financniUrad: data.financniUrad?.nazev || '',
       };
+
+      // ===== LOGOVÁNÍ 4: CO PŘIPRAVUJEME PRO ULOŽENÍ DO STAVU =====
+      console.log('[SettingsPage.jsx] OBJEKT PŘIPRAVENÝ K ULOŽENÍ DO STAVU:', aresData);
 
       setSupplier(prev => ({ ...prev, ...aresData }));
       toast.success('Údaje o firmě byly úspěšně načteny z ARESu!');
