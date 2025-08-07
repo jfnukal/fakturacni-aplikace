@@ -265,6 +265,12 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                         {translateInCzech('notVatPayer')}
                       </div>
                     )}
+                    {/* Zobrazí se jen pro neplátce, kteří mají vyplněný úřad */}
+                                          {supplier.registeringAuthority && (
+                        <div style={{ marginTop: '2mm', fontSize: '8pt' }}>
+                          {`Fyzická osoba zapsaná v živnostenském rejstříku vedeném u ${supplier.registeringAuthority}`}
+                        </div>
+                      )}
                   </div>
                 </div>
               </td>
@@ -329,10 +335,9 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                   {invoice.number.replace(/-/g, '')}
                 </div>
                 <div>
-                  <strong>{translateInCzech('paymentMethod')}:</strong>{' '}
-                  {invoice.paymentMethod || 'Převodem'}
+                  <strong>{translateInCzech('payment_methods.label')}:</strong> {invoice.paymentMethod === 'Hotově' ? translateInCzech('payment_methods.cash') : translateInCzech('payment_methods.transfer')}
                 </div>
-              </td>
+               </td>
               <td style={{ width: '50%', verticalAlign: 'top' }}>
                 {/* Místo pro další platební info nebo prázdné */}
               </td>
