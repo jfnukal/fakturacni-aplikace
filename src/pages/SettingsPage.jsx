@@ -66,47 +66,41 @@ const SettingsPage = ({
   const fileInputRef = useRef(null);
   const [bankAccountError, setBankAccountError] = useState('');
 
-  const fetchSupplierFromAres = async (ico) => {
-  console.log("KROK 1: Spouštím funkci fetchSupplierFromAres s IČO:", ico);
-
-  if (!ico || !/^\d{8}$/.test(ico)) {
-    console.error("CHYBA: Neplatné nebo chybějící IČO.", ico);
-    alert(t('customers_page.alert.invalid_ico'));
-    return;
-  }
-
-  const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
-  console.log("KROK 2: Budu volat URL:", proxiedUrl);
-
-  try {
-    console.log("KROK 3: Odesílám požadavek (fetch)...");
-    const response = await fetch(proxiedUrl);
-    console.log("KROK 4: Obdržel jsem odpověď od serveru:", response);
-
-    if (!response.ok) {
-      console.error("CHYBA: Odpověď serveru není v pořádku. Status:", response.status, response.statusText);
-      throw new Error(t('customers_page.alert.ares_error'));
-    }
-
-    const data = await response.json();
-    console.log("Kompletní odpověď z ARESu:", data);
-
-    if (!data || !data.obchodniJmeno) {
-      console.error("CHYBA: Data z ARESu neobsahují obchodní jméno.");
-      alert(t('customers_page.alert.company_not_found'));
+ const fetchSupplierFromAres = async (ico) => {
+    if (!ico || !/^\d{8}$/.test(ico)) {
+      alert(t('customers_page.alert.invalid_ico'));
       return;
     }
+    const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
+    try {
+      const response = await fetch(proxiedUrl);
+      if (!response.ok) {
+        throw new Error(t('customers_page.alert.ares_error'));
+      }
+      const data = await response.json(); // Data jsou již hotová a zpracovaná ze serveru
+      if (!data || !data.obchodniJmeno) {
+        alert(t('customers_page.alert.company_not_found'));
+        return;
+      }
+      
+      // Použijeme již hotová data přímo z odpovědi
+      const aresData = {
+        name: data.obchodniJmeno,
+        address: data.address,
+        zip: data.zip,
+        city: data.city,
+        ico: data.ico,
+        dic: data.dic || '',
+        registeringAuthority: data.zivnostenskyUrad?.nazev || '',
+      };
 
-    const authority = data.zivnostenskyUrad?.nazev;
-    const aresData = {
-      name: data.obchodniJmeno,
-      address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
-      zip: data.sidlo?.psc || '',
-      city: data.sidlo?.nazevObce || '',
-      ico: data.ico,
-      dic: data.dic || '',
-      registeringAuthority: authority || '',
-    };
+      setSupplier(prev => ({ ...prev, ...aresData }));
+      toast.success('Údaje o firmě byly úspěšně načteny z ARESu!');
+
+    } catch (error) {
+      alert(error.message || t('customers_page.alert.ares_fetch_failed'));
+    }
+};
 
     console.log("KROK 6: Budu nastavovat nová data pro dodavatele:", aresData);
     setSupplier(prev => ({ ...prev, ...aresData }));
