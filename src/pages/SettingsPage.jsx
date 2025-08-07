@@ -7,6 +7,42 @@ import { Upload, Save, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IMaskInput } from 'react-imask';
 import DeliveryNotesImportTool from '../components/DeliveryNotesImportTool';
+import { Building } from 'lucide-react';
+
+const fetchSupplierFromAres = async (ico) => {
+  if (!ico || !/^\d{8}$/.test(ico)) {
+    alert(t('customers_page.alert.invalid_ico'));
+    return;
+  }
+  const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
+  try {
+    const response = await fetch(proxiedUrl);
+    if (!response.ok) {
+      throw new Error(t('customers_page.alert.ares_error'));
+    }
+    const data = await response.json();
+    if (!data || !data.obchodniJmeno) {
+      alert(t('customers_page.alert.company_not_found'));
+      return;
+    }
+
+    // Získáme název úřadu z detailu o živnostenském rejstříku
+    const authority = data.zivnostenskyUrad?.nazev;
+
+    const aresData = {
+      name: data.obchodniJmeno,
+      address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
+      zip: data.sidlo?.psc || '',
+      city: data.sidlo?.nazevObce || '',
+      ico: data.ico,
+      dic: data.dic || '',
+      registeringAuthority: authority || '', // Uložíme název úřadu
+    };
+    setSupplier(prev => ({ ...prev, ...aresData }));
+  } catch (error) {
+    alert(error.message || t('customers_page.alert.ares_fetch_failed'));
+  }
+};
 
 // --- Funkce pro validaci českého čísla účtu ---
 const validateCzechBankAccount = (accountString) => {
@@ -247,23 +283,26 @@ const SettingsPage = ({
             />
           </div>
           <div className="md:col-span-3">
-            <label
-              htmlFor="ico"
-              className="block text-sm font-medium text-gray-700"
-            >
-              {t('placeholder_ico')}
-            </label>
-            <input
-              type="text"
-              id="ico"
-              placeholder="12345678"
-              value={supplier.ico}
-              onChange={(e) =>
-                setSupplier({ ...supplier, ico: e.target.value })
-              }
-              className="mt-1 w-full p-2 border rounded"
-            />
-          </div>
+                <label htmlFor="ico" className="block text-sm font-medium text-gray-700">{t('placeholder_ico')}</label>
+                <div className="flex items-center gap-2 mt-1">
+                    <input 
+                        type="text" 
+                        id="ico" 
+                        placeholder="12345678" 
+                        value={supplier.ico} 
+                        onChange={(e) => setSupplier({ ...supplier, ico: e.target.value })} 
+                        className="w-full p-2 border rounded" 
+                    />
+                    <button 
+                        type="button" 
+                        onClick={() => fetchSupplierFromAres(supplier.ico)} 
+                        className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+                        title="Načíst údaje z ARESu"
+                    >
+                        <Building size={20} />
+                    </button>
+                </div>
+            </div>
           <div className="md:col-span-3">
             <label
               htmlFor="dic"
