@@ -104,6 +104,7 @@ function getNewInvoice(vatSettings) {
 }
 
 // Modální okno pro výběr dodacích listů
+// Modální okno pro výběr dodacích listů
 const DeliveryNotesSelectionModal = ({
   isOpen,
   onClose,
@@ -156,10 +157,7 @@ const DeliveryNotesSelectionModal = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        <div
-  onClick={(e) => e.stopPropagation()}
-  className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] flex flex-col"
->overflow-hidden"
+        className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] flex flex-col" // <-- ZMĚNA 1
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold">Vybrat dodací listy k fakturaci</h2>
@@ -171,7 +169,7 @@ const DeliveryNotesSelectionModal = ({
           </button>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="p-6 flex-1 overflow-y-auto"> {/* <-- ZMĚNA 2 */}
           {unInvoicedNotes.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="mb-2">Žádné nefakturované dodací listy</div>
