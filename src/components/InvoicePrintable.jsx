@@ -262,7 +262,7 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                     )}
                     {supplier.registeringAuthority && (
                         <div style={{ marginTop: '2mm', fontSize: '8pt' }}>
-                          {`Fyzická osoba zapsaná v živnostenském rejstříku vedeném v ${supplier.registeringAuthority}`}
+                          {`Fyzická osoba zapsaná v živnostenském rejstříku vedeném u ${supplier.registeringAuthority}`}
                         </div>
                       )}
                   
