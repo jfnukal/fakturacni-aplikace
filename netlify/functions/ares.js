@@ -65,7 +65,7 @@ exports.handler = async function (event, context) {
 
     // --- PŘIDANÁ LOGIKA PRO FINANČNÍ ÚŘAD ---
     let financniUradNazev = null;
-    if (data.financniUrad === 358) { // Kód pro Moravskoslezský kraj
+    if (data.financniUrad == 358) { // Kód pro Moravskoslezský kraj
       financniUradNazev = 'Finanční úřad pro Moravskoslezský kraj';
     }
     // --- KONEC PŘIDANÉ LOGIKY ---
@@ -106,3 +106,4 @@ exports.handler = async function (event, context) {
     };
   }
 };
+
