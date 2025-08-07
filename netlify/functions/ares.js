@@ -41,17 +41,17 @@ exports.handler = async function (event, context) {
     }
 
     const data = await aresResponse.json();
-
-    // --- ZAČÁTEK ZPRACOVACÍ LOGIKY ---
-
+    
+    // ===== LOGOVÁNÍ 1: CO PŘIŠLO PŘÍMO Z ARESu =====
+    console.log('[ares.js] SUROVÁ ODPOVĚĎ Z ARES:', JSON.stringify(data, null, 2));
+    
     const sidlo = data.sidlo || {};
     const ulice = sidlo.nazevUlice || '';
-    const cisloDomovni = sidlo.cisloDomovni || ''; // Číslo popisné
+    const cisloDomovni = sidlo.cisloDomovni || '';
     const cisloOrientacni = sidlo.cisloOrientacni || '';
     const cisloOrientacniPismeno = sidlo.cisloOrientacniPismeno || '';
 
     let ciselnaCast = '';
-    // FINÁLNÍ SPRÁVNÉ POŘADÍ: orientační / popisné
     if (cisloDomovni && cisloOrientacni) {
         ciselnaCast = `${cisloOrientacni}${cisloOrientacniPismeno}/${cisloDomovni}`;
     } else if (cisloDomovni) {
@@ -63,12 +63,10 @@ exports.handler = async function (event, context) {
     const finalniAdresa = [ulice, ciselnaCast].filter(Boolean).join(' ').trim();
     const authority = data.zivnostenskyUrad ? data.zivnostenskyUrad.nazev : null;
 
-    // --- PŘIDANÁ LOGIKA PRO FINANČNÍ ÚŘAD ---
     let financniUradNazev = null;
-    if (data.financniUrad == 358) { // Kód pro Moravskoslezský kraj
+    if (data.financniUrad == 358) { 
       financniUradNazev = 'Finanční úřad pro Moravskoslezský kraj';
     }
-    // --- KONEC PŘIDANÉ LOGIKY ---
 
     const responseData = {
       ico: data.ico,
@@ -80,13 +78,13 @@ exports.handler = async function (event, context) {
       zivnostenskyUrad: {
           nazev: authority
       },
-      // Přidáme nový objekt pro finanční úřad
       financniUrad: {
           nazev: financniUradNazev
       }
     };
     
-    // --- KONEC ZPRACOVACÍ LOGIKY ---
+    // ===== LOGOVÁNÍ 2: CO POSÍLÁME DO APLIKACE =====
+    console.log('[ares.js] HOTOVÁ ODPOVĚĎ K ODESLÁNÍ:', JSON.stringify(responseData, null, 2));
 
     return {
       statusCode: 200,
@@ -106,4 +104,3 @@ exports.handler = async function (event, context) {
     };
   }
 };
-
