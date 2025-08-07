@@ -50,7 +50,7 @@ const InvoicePrintable = React.forwardRef(
     if (!invoice || !supplier || !vatSettings) {
       return null;
     }
-
+console.log("Supplier data v tiskové šabloně:", supplier);
     // --- KLÍČOVÁ ZMĚNA: Přepracovaná funkce pro výpočet DPH ---
     const calculateTotals = () => {
       if (!invoice.items || !Array.isArray(invoice.items)) {
