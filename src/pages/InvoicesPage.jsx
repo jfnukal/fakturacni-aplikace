@@ -1773,6 +1773,7 @@ const InvoicesPage = ({
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              {vatSettings.enabled && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('invoices_page.form.taxable_date')}
@@ -1790,6 +1791,7 @@ const InvoicesPage = ({
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('invoices_page.form.due_days_info')}
