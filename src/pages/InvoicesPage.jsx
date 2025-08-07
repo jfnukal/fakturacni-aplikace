@@ -1150,6 +1150,10 @@ const InvoicesPage = ({
   };
 
   const handleDownloadPdf = (invoice) => {
+    const oldElement = document.getElementById('pdf-container');
+  if (oldElement) {
+    oldElement.remove();
+  }
     const element = document.createElement('div');
     element.style.position = 'absolute';
     element.style.left = '-9999px';
@@ -1192,6 +1196,10 @@ const InvoicesPage = ({
   };
 
   const handlePrint = (invoice) => {
+    const oldContainer = document.getElementById('print-container');
+  if (oldContainer) {
+    oldContainer.remove();
+  }
     const printContainer = document.createElement('div');
     printContainer.id = 'print-container';
     printContainer.style.position = 'absolute';
