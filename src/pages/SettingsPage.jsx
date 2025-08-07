@@ -66,38 +66,56 @@ const SettingsPage = ({
   const [bankAccountError, setBankAccountError] = useState('');
 
   const fetchSupplierFromAres = async (ico) => {
-    if (!ico || !/^\d{8}$/.test(ico)) {
-      alert(t('customers_page.alert.invalid_ico'));
+  console.log("KROK 1: Spouštím funkci fetchSupplierFromAres s IČO:", ico);
+
+  if (!ico || !/^\d{8}$/.test(ico)) {
+    console.error("CHYBA: Neplatné nebo chybějící IČO.", ico);
+    alert(t('customers_page.alert.invalid_ico'));
+    return;
+  }
+
+  const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
+  console.log("KROK 2: Budu volat URL:", proxiedUrl);
+
+  try {
+    console.log("KROK 3: Odesílám požadavek (fetch)...");
+    const response = await fetch(proxiedUrl);
+    console.log("KROK 4: Obdržel jsem odpověď od serveru:", response);
+
+    if (!response.ok) {
+      console.error("CHYBA: Odpověď serveru není v pořádku. Status:", response.status, response.statusText);
+      throw new Error(t('customers_page.alert.ares_error'));
+    }
+
+    const data = await response.json();
+    console.log("KROK 5: Zpracovaná data ve formátu JSON:", data);
+
+    if (!data || !data.obchodniJmeno) {
+      console.error("CHYBA: Data z ARESu neobsahují obchodní jméno.");
+      alert(t('customers_page.alert.company_not_found'));
       return;
     }
-    const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
-    try {
-      const response = await fetch(proxiedUrl);
-      if (!response.ok) {
-        throw new Error(t('customers_page.alert.ares_error'));
-      }
-      const data = await response.json();
-      if (!data || !data.obchodniJmeno) {
-        alert(t('customers_page.alert.company_not_found'));
-        return;
-      }
 
-      const authority = data.zivnostenskyUrad?.nazev;
+    const authority = data.zivnostenskyUrad?.nazev;
+    const aresData = {
+      name: data.obchodniJmeno,
+      address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
+      zip: data.sidlo?.psc || '',
+      city: data.sidlo?.nazevObce || '',
+      ico: data.ico,
+      dic: data.dic || '',
+      registeringAuthority: authority || '',
+    };
 
-      const aresData = {
-        name: data.obchodniJmeno,
-        address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
-        zip: data.sidlo?.psc || '',
-        city: data.sidlo?.nazevObce || '',
-        ico: data.ico,
-        dic: data.dic || '',
-        registeringAuthority: authority || '',
-      };
-      setSupplier(prev => ({ ...prev, ...aresData }));
-    } catch (error) {
-      alert(error.message || t('customers_page.alert.ares_fetch_failed'));
-    }
-  };
+    console.log("KROK 6: Budu nastavovat nová data pro dodavatele:", aresData);
+    setSupplier(prev => ({ ...prev, ...aresData }));
+    console.log("KROK 7: Hotovo, stav by měl být aktualizován.");
+
+  } catch (error) {
+    console.error("CHYBA V BLOKU CATCH:", error);
+    alert('Došlo k chybě. Zkontrolujte prosím vývojářskou konzoli (F12) pro více detailů.');
+  }
+};
 
   const [prefix, setPrefix] = useState('');
   const [number, setNumber] = useState('');
