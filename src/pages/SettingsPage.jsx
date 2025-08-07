@@ -9,41 +9,6 @@ import { IMaskInput } from 'react-imask';
 import DeliveryNotesImportTool from '../components/DeliveryNotesImportTool';
 import { Building } from 'lucide-react';
 
-const fetchSupplierFromAres = async (ico) => {
-  if (!ico || !/^\d{8}$/.test(ico)) {
-    alert(t('customers_page.alert.invalid_ico'));
-    return;
-  }
-  const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
-  try {
-    const response = await fetch(proxiedUrl);
-    if (!response.ok) {
-      throw new Error(t('customers_page.alert.ares_error'));
-    }
-    const data = await response.json();
-    if (!data || !data.obchodniJmeno) {
-      alert(t('customers_page.alert.company_not_found'));
-      return;
-    }
-
-    // Získáme název úřadu z detailu o živnostenském rejstříku
-    const authority = data.zivnostenskyUrad?.nazev;
-
-    const aresData = {
-      name: data.obchodniJmeno,
-      address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
-      zip: data.sidlo?.psc || '',
-      city: data.sidlo?.nazevObce || '',
-      ico: data.ico,
-      dic: data.dic || '',
-      registeringAuthority: authority || '', // Uložíme název úřadu
-    };
-    setSupplier(prev => ({ ...prev, ...aresData }));
-  } catch (error) {
-    alert(error.message || t('customers_page.alert.ares_fetch_failed'));
-  }
-};
-
 // --- Funkce pro validaci českého čísla účtu ---
 const validateCzechBankAccount = (accountString) => {
   if (!accountString || accountString === '/') return true; // Povolíme prázdné pole
@@ -99,6 +64,40 @@ const SettingsPage = ({
   const [logoPreview, setLogoPreview] = useState('');
   const fileInputRef = useRef(null);
   const [bankAccountError, setBankAccountError] = useState('');
+
+  const fetchSupplierFromAres = async (ico) => {
+    if (!ico || !/^\d{8}$/.test(ico)) {
+      alert(t('customers_page.alert.invalid_ico'));
+      return;
+    }
+    const proxiedUrl = `/.netlify/functions/ares?ico=${ico}`;
+    try {
+      const response = await fetch(proxiedUrl);
+      if (!response.ok) {
+        throw new Error(t('customers_page.alert.ares_error'));
+      }
+      const data = await response.json();
+      if (!data || !data.obchodniJmeno) {
+        alert(t('customers_page.alert.company_not_found'));
+        return;
+      }
+
+      const authority = data.zivnostenskyUrad?.nazev;
+
+      const aresData = {
+        name: data.obchodniJmeno,
+        address: `${data.sidlo?.ulice || ''} ${data.sidlo?.cisloOrientacni || ''}`.trim(),
+        zip: data.sidlo?.psc || '',
+        city: data.sidlo?.nazevObce || '',
+        ico: data.ico,
+        dic: data.dic || '',
+        registeringAuthority: authority || '',
+      };
+      setSupplier(prev => ({ ...prev, ...aresData }));
+    } catch (error) {
+      alert(error.message || t('customers_page.alert.ares_fetch_failed'));
+    }
+  };
 
   const [prefix, setPrefix] = useState('');
   const [number, setNumber] = useState('');
