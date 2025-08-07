@@ -265,13 +265,7 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                           {`Fyzická osoba zapsaná v živnostenském rejstříku vedeném u ${supplier.registeringAuthority}`}
                         </div>
                       )}
-                  
-                    {/* --- PŘIDANÝ KÓD PRO ZOBRAZENÍ FINANČNÍHO ÚŘADU --- */}
-                    {/* --- ZOBRAZENÍ FINANČNÍHO ÚŘADU V NASTAVENÍ --- */}
-                      {supplier.financniUrad && (
-                        
-                      )}
-                    {/* --- KONEC PŘIDANÉHO KÓDU --- */}
+           
                   
                   </div>
                 </div>
