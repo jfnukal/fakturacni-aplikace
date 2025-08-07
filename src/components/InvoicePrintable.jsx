@@ -269,15 +269,7 @@ const paymentString = `SPD*1.0*ACC:${ibanAccount}*AM:${amount}*CC:CZK*MSG:Faktur
                     {/* --- PŘIDANÝ KÓD PRO ZOBRAZENÍ FINANČNÍHO ÚŘADU --- */}
                     {/* --- ZOBRAZENÍ FINANČNÍHO ÚŘADU V NASTAVENÍ --- */}
                       {supplier.financniUrad && (
-                        <div className="md:col-span-6">
-                          <label className="block text-sm font-medium text-gray-700">Příslušný finanční úřad (načteno z ARESu)</label>
-                          <input 
-                            type="text" 
-                            readOnly 
-                            value={supplier.financniUrad}
-                            className="mt-1 w-full p-2 border rounded bg-gray-100 cursor-not-allowed" 
-                          />
-                        </div>
+                        
                       )}
                     {/* --- KONEC PŘIDANÉHO KÓDU --- */}
                   
