@@ -57,6 +57,7 @@ const SettingsPage = ({
     bankAccount: '',
     paymentMethod: 'Převodem',
     logoUrl: '',
+    financniUrad: '',
   });
   const [vatSettings, setVatSettings] = useState({
     enabled: false,
@@ -92,6 +93,7 @@ const SettingsPage = ({
         ico: data.ico,
         dic: data.dic || '',
         registeringAuthority: data.zivnostenskyUrad?.nazev || '',
+        financniUrad: data.financniUrad?.nazev || '',
       };
 
       setSupplier(prev => ({ ...prev, ...aresData }));
