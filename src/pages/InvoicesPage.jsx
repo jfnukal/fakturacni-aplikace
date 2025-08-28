@@ -71,21 +71,21 @@ const cleanupDOMElement = (element, root) => {
 };
 
 function getNewInvoice(vatSettings) {
+  const today = new Date().toLocaleDateString('cs-CZ', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  
+  const dueDays = 14;
+  
   return {
     id: Date.now(),
     number: '',
-    issueDate: new Date().toLocaleDateString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }),
-    duzpDate: new Date().toLocaleDateString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }),
-    dueDate: '',
-    dueDays: 14,
+    issueDate: today,
+    duzpDate: today,
+    dueDate: calculateDueDate(today, dueDays), // <-- PŘIDEJTE TOTO
+    dueDays: dueDays,
     currency: 'CZK',
     customer: { name: '', address: '', zip: '', city: '', ico: '', dic: '' },
     items: [
@@ -102,6 +102,16 @@ function getNewInvoice(vatSettings) {
     status: 'draft',
   };
 }
+
+const ensureDueDate = (invoice) => {
+  if (!invoice.dueDate && invoice.issueDate && invoice.dueDays) {
+    return {
+      ...invoice,
+      dueDate: calculateDueDate(invoice.issueDate, invoice.dueDays)
+    };
+  }
+  return invoice;
+};
 
 // Modální okno pro výběr dodacích listů
 // Modální okno pro výběr dodacích listů
@@ -1165,12 +1175,13 @@ const calculateDueDate = (issueDate, days) => {
 };
 
   const editInvoice = (invoice) => {
+    const invoiceWithDueDate = ensureDueDate(invoice); // <-- PŘIDEJTE TOTO
     const fullInvoice = {
-      ...invoice,
-      dueDays: invoice.dueDays || 14,
+      ...invoiceWithDueDate,
+      dueDays: invoiceWithDueDate.dueDays || 14,
       items:
-        invoice.items && invoice.items.length > 0
-          ? invoice.items
+        invoiceWithDueDate.items && invoiceWithDueDate.items.length > 0
+          ? invoiceWithDueDate.items
           : [createNewItem()],
     };
     setCurrentInvoice(fullInvoice);
@@ -1289,7 +1300,7 @@ const calculateDueDate = (issueDate, days) => {
         editInvoice(invoice);
         break;
       case 'view':
-        setCurrentInvoice(invoice);
+        setCurrentInvoice(ensureDueDate(invoice));
         setShowPreviewModal(true);
         break;
       case 'print':
