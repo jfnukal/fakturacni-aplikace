@@ -70,6 +70,55 @@ const cleanupDOMElement = (element, root) => {
   }
 };
 
+const calculateDueDate = (issueDate, days) => {
+  if (!issueDate || !days) return '';
+
+  const numericDays = parseInt(days, 10); 
+  if (isNaN(numericDays) || numericDays <= 0) return '';
+
+  try {
+    // Očistíme vstupní data
+    const cleanDate = issueDate.trim();
+    const cleanDays = parseInt(days, 10);
+    
+    if (!cleanDate || isNaN(cleanDays) || cleanDays < 0) return '';
+
+    const dateParts = cleanDate.split('.').map((part) => parseInt(part.trim(), 10));
+    
+    // Kontrola formátu dd.mm.yyyy
+    if (dateParts.length !== 3) return '';
+    
+    const [day, month, year] = dateParts;
+    
+    // Validace rozsahů
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
+      return '';
+    }
+
+    const date = new Date(year, month - 1, day);
+    
+    // Kontrola, zda datum existuje (např. 31.2. neexistuje)
+    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
+      return '';
+    }
+    
+    if (isNaN(date.getTime())) return '';
+
+    // Přidáme dny
+    date.setDate(date.getDate() + cleanDays);
+
+    return date.toLocaleDateString('cs-CZ', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch (e) {
+    console.error('Error calculating due date:', e);
+    return '';
+  }
+};
+
+
 function getNewInvoice(vatSettings) {
   const today = new Date().toLocaleDateString('cs-CZ', {
     day: '2-digit',
@@ -1126,53 +1175,6 @@ const InvoicesPage = ({
     });
   };
 
-const calculateDueDate = (issueDate, days) => {
-  if (!issueDate || !days) return '';
-
-  const numericDays = parseInt(days, 10); 
-  if (isNaN(numericDays) || numericDays <= 0) return '';
-
-  try {
-    // Očistíme vstupní data
-    const cleanDate = issueDate.trim();
-    const cleanDays = parseInt(days, 10);
-    
-    if (!cleanDate || isNaN(cleanDays) || cleanDays < 0) return '';
-
-    const dateParts = cleanDate.split('.').map((part) => parseInt(part.trim(), 10));
-    
-    // Kontrola formátu dd.mm.yyyy
-    if (dateParts.length !== 3) return '';
-    
-    const [day, month, year] = dateParts;
-    
-    // Validace rozsahů
-    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
-      return '';
-    }
-
-    const date = new Date(year, month - 1, day);
-    
-    // Kontrola, zda datum existuje (např. 31.2. neexistuje)
-    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
-      return '';
-    }
-    
-    if (isNaN(date.getTime())) return '';
-
-    // Přidáme dny
-    date.setDate(date.getDate() + cleanDays);
-
-    return date.toLocaleDateString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch (e) {
-    console.error('Error calculating due date:', e);
-    return '';
-  }
-};
 
   const editInvoice = (invoice) => {
     const invoiceWithDueDate = ensureDueDate(invoice); // <-- PŘIDEJTE TOTO
