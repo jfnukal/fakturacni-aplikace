@@ -920,17 +920,20 @@ const InvoicesPage = ({
 
     const vatBreakdown = {};
 
-    if (currentVatSettings?.enabled) {
+   if (currentVatSettings?.enabled) {
       invoice.items.forEach((item) => {
         const itemTotal = Number(item.totalPrice) || 0;
         const itemVatRate = item.vatRate || currentVatSettings.rate || 21;
-
-        if (!vatBreakdown[itemVatRate]) {
-          vatBreakdown[itemVatRate] = { base: 0, amount: 0 };
+    
+        // PŘIDEJTE TUTO PODMÍNKU:
+        if (itemVatRate > 0) {
+          if (!vatBreakdown[itemVatRate]) {
+            vatBreakdown[itemVatRate] = { base: 0, amount: 0 };
+          }
+    
+          vatBreakdown[itemVatRate].base += itemTotal;
+          vatBreakdown[itemVatRate].amount += (itemTotal * itemVatRate) / 100;
         }
-
-        vatBreakdown[itemVatRate].base += itemTotal;
-        vatBreakdown[itemVatRate].amount += (itemTotal * itemVatRate) / 100;
       });
     }
 
