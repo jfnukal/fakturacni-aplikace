@@ -1119,6 +1119,9 @@ const InvoicesPage = ({
 const calculateDueDate = (issueDate, days) => {
   if (!issueDate || !days) return '';
 
+  const numericDays = parseInt(days, 10); 
+  if (isNaN(numericDays) || numericDays <= 0) return '';
+
   try {
     // Očistíme vstupní data
     const cleanDate = issueDate.trim();
@@ -1800,7 +1803,7 @@ const calculateDueDate = (issueDate, days) => {
                       issueDate: e.target.value,
                       dueDate: calculateDueDate(
                         e.target.value,
-                        currentInvoice.dueDays
+                        parseInt(currentInvoice.dueDays, 10) || 14
                       ),
                     })
                   }
@@ -1835,7 +1838,7 @@ const calculateDueDate = (issueDate, days) => {
                   placeholder="14"
                   value={currentInvoice.dueDays || ''}
                   onChange={(e) => {
-                    const days = parseInt(e.target.value, 10) || 0;
+                    const days = parseInt(e.target.value, 10) || 14;
                     setCurrentInvoice({
                       ...currentInvoice,
                       dueDays: days,
