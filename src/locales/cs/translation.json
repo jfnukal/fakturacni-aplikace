@@ -1,0 +1,502 @@
+{
+  "invoices": "Faktury",
+  "delivery_notes": "Dodací listy",
+  "customers": "Odběratelé",
+  "products": "Produkty",
+  "settings": "Nastavení",
+  "main_attendance": "Docházka",
+  "loading": "Načítání dat...",
+  "logout": "Odhlásit se",
+  "loggedInAs": "Přihlášen jako:",
+  "settingsTitle": "Nastavení",
+  "companyLogo": "Logo firmy",
+  "uploadLogo": "Nahrát logo",
+  "remove": "Odstranit",
+  "maxFileSize": "Max 2MB",
+  "vatSettings": "Nastavení DPH",
+  "vatPayer": "Jsem plátce DPH",
+  "vatRate": "Sazba DPH (%)",
+  "supplierDetails": "Údaje dodavatele",
+  "saveSettings": "Uložit nastavení",
+  "placeholder_companyName": "Název/Jméno",
+  "placeholder_address": "Adresa",
+  "placeholder_zip": "PSČ",
+  "placeholder_city": "Město",
+  "placeholder_ico": "IČO",
+  "placeholder_dic": "DIČ",
+  "placeholder_bankAccount": "Bankovní účet",
+  "invoice_title": "Faktura",
+  "invoice_number": "Číslo",
+  "supplier": "DODAVATEL",
+  "customer": "ODBĚRATEL",
+  "ico": "IČO",
+  "dic": "DIČ",
+  "notVatPayer": "Neplátce DPH",
+  "bankAccount": "Bankovní účet",
+  "variableSymbol": "Variabilní symbol",
+  "paymentMethod": "Způsob platby",
+  "issueDate": "Datum vystavení",
+  "taxableDate": "Datum zdan. plnění",
+  "dueDate": "Datum splatnosti",
+  "th_description": "Popis",
+  "th_quantity": "Množství",
+  "th_unit": "Jednotka",
+  "th_pricePerUnit": "Cena za MJ",
+  "th_total": "Celkem",
+  "currency_czk": "Kč",
+  "subtotal": "Mezisoučet",
+  "vat_rate_display": "DPH {{rate}}%",
+  "totalToPay": "Celkem k úhradě",
+  "qrPayment": "QR Platba",
+  "deliveryNote_title": "Dodací list",
+  "deliveryNote_number": "Číslo",
+  "th_total_without_vat": "Celkem bez DPH",
+  "common": {
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "preview": "Náhled",
+    "print": "Tisk",
+    "back_to_list": "Zpět na přehled",
+    "download_pdf": "Stáhnout PDF",
+    "share": "Sdílet",
+    "clone": "Klonovat",
+    "edit": "Upravit",
+    "delete": "Smazat",
+    "view": "Zobrazit",
+    "save_changes": "Uložit změny",
+    "save_anyway": "Přesto uložit",
+    "back": "Zpět",
+    "discard_changes": "Zahodit změny",
+    "save_all_changes": "Uložit všechny změny"
+  },
+  "customers_page": {
+    "title": "Přehled odběratelů",
+    "new": "Nový odběratel",
+    "edit_title": "Upravit odběratele",
+    "new_title": "Nový odběratel",
+    "table": {
+      "name": "Název",
+      "ico": "IČO",
+      "city": "Město",
+      "actions": "Akce"
+    },
+    "empty": {
+      "title": "Zatím žádní odběratelé",
+      "subtitle": "Přidejte prvního odběratele kliknutím na tlačítko výše"
+    },
+    "action": {
+      "create_invoice": "Vytvořit fakturu"
+    },
+    "form": {
+      "company_name": "Název firmy",
+      "address": "Adresa",
+      "zip": "PSČ",
+      "city": "Město",
+      "ico": "IČO",
+      "ares": "ARES",
+      "dic": "DIČ",
+      "notes": "Poznámky..."
+    },
+    "alert": {
+      "invalid_ico": "Zadejte platné osmimístné IČO.",
+      "ares_error": "Chyba při komunikaci s ARES.",
+      "company_not_found": "Firma s daným IČO nebyla nalezena.",
+      "ares_fetch_failed": "Nepodařilo se načíst data z ARES.",
+      "name_required": "Jméno odběratele je povinné.",
+      "confirm_delete": "Opravdu chcete smazat tohoto odběratele?"
+    }
+  },
+
+  "customer_selector": {
+    "search_placeholder": "Začni psát jméno zákazníka...",
+    "no_results": "Žádní zákazníci nenalezeni",
+    "add_new": "Přidat \"{name}\" jako nového",
+    "start_typing": "Začni psát pro vyhledání..."
+  },
+
+  "payment_methods": {
+    "label": "Způsob platby",
+    "transfer": "Převodem",
+    "cash": "Hotově"
+  },
+
+  "products_page": {
+    "title": "Produkty a ceník",
+    "add_item": "Přidat produkt",
+    "drag_handle": "Změnit pořadí",
+    "changes_saved": "Změny úspěšně uloženy!",
+    "save_error": "Chyba při ukládání změn.",
+    "new": "Nový produkt",
+    "header": {
+      "name": "Název produktu",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH/kus",
+      "price_with_vat": "Cena s DPH",
+      "actions": "Akce"
+    },
+    "table": {
+      "name": "Název",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH",
+      "price_with_vat": "Cena s DPH",
+      "actions": "Akce"
+    },
+    "form": {
+      "product_name": "Název produktu",
+      "unit": "Jednotka",
+      "price_without_vat": "Cena bez DPH"
+    },
+    "alert": {
+      "name_required": "Název produktu je povinný.",
+      "confirm_delete": "Opravdu chcete označit tento produkt ke smazání?",
+      "move_wip": "Funkce pro změnu pořadí bude dodělána."
+    }
+  },
+  "delivery_notes_page": {
+    "title": "Přehled dodacích listů",
+    "new": "Nový dodací list",
+    "edit_title": "Upravit dodací list",
+    "new_title": "Nový dodací list",
+    "save": "Uložit dodací list",
+    "loading": "Načítání dodacích listů...",
+    "table": {
+      "number": "Číslo",
+      "customer": "Odběratel",
+      "issue_date": "Vystaveno dne",
+      "amount": "Částka",
+      "actions": "Akce",
+      "with_vat": "(s DPH: {{amount}} Kč)"
+     },
+      "pagination": {
+        "rows_per_page": "Řádků na stránku:",
+        "showing": "Zobrazuji",
+        "to": "až",
+        "of": "z",
+        "records": "záznamů",
+        "page": "Stránka",
+        "total_records": "Celkem",
+        "previous": "Předchozí",
+        "next": "Další"
+    },
+    "form": {
+      "number": "Číslo dodacího listu:",
+      "issue_date": "Vystaveno dne:",
+      "customer": "Odběratel",
+      "select_customer": "Vybrat odběratele...",
+      "items": "Položky",
+      "item_name": "Název",
+      "item_price": "Cena bez DPH/ks",
+      "item_quantity": "Množství",
+      "show_prices": "Zobrazit ceny v PDF",
+      "total_without_vat": "Celkem bez DPH:",
+      "total_with_vat": "Celkem s DPH:"
+    },
+    "alert": {
+      "customer_required": "Před uložením prosím vyberte odběratele.",
+      "save_error": "Chyba při ukládání DL:",
+      "generic_save_error": "Nastala chyba při ukládání.",
+      "confirm_delete": "Opravdu chcete smazat tento dodací list?",
+      "share_not_supported": "Sdílení není na tomto zařízení podporováno.",
+      "share_error": "Chyba při sdílení:"
+    },
+    "modal": {
+      "missing_number_title": "Chybějící číslo dodacího listu",
+      "missing_number_message": "Není vyplněno číslo dodacího listu. Můžete ho doplnit zde, nebo DL uložit bez něj.",
+      "number_label": "Číslo dodacího listu",
+      "confirm_save": "Doplnit a uložit"
+    }
+  },
+  "invoices_page": {
+    "title": "Přehled faktur",
+    "create_from_dl": "Vytvořit z DL",
+    "new": "Nová faktura",
+    "loading": "Načítání faktur...",
+    "table": {
+      "number": "Číslo",
+      "customer": "Odběratel",
+      "issued": "Vystaveno",
+      "amount": "Částka",
+      "status": "Stav",
+      "actions": "Akce"
+     },
+     "empty": {
+        "title": "Zatím žádné faktury",
+        "subtitle": "Vytvořte první fakturu kliknutím na tlačítko výše"
+    },
+    "status": {
+      "draft": "Koncept",
+      "pending": "Čeká na platbu",
+      "paid": "Zaplaceno",
+      "overdue": "Po splatnosti"
+    },
+    "dl_select": {
+      "title": "Vybrat dodací listy k fakturaci",
+      "alert": {
+        "no_selection": "Prosím, vyberte alespoň jeden dodací list.",
+        "multiple_customers": "Nelze vytvořit fakturu z dodacích listů pro různé odběratele."
+      },
+      "create_from_selected": "Vytvořit fakturu z vybraných"
+    },
+    "edit_title": "Upravit fakturu {{number}}",
+    "new_title": "Nová faktura",
+    "create": "Vytvořit fakturu",
+    "form": {
+      "number": "Číslo faktury",
+      "issue_date": "Datum vystavení",
+      "taxable_date": "DUZP",
+      "due_days": "Splatnost (dny)",
+      "due_days_info": "Splatnost (dny) - automaticky se vypočítá datum splatnosti",
+      "customer": "Odběratel",
+      "select_saved": "Vybrat uloženého",
+      "customer_name": "Název",
+      "customer_address": "Adresa",
+      "customer_zip": "PSČ",
+      "customer_city": "Město",
+      "customer_ico": "IČO",
+      "customer_dic": "DIČ",
+      "items": "Položky",
+      "item_description": "Popis",
+      "item_quantity": "Počet",
+      "item_unit": "MJ",
+      "item_price": "Cena",
+      "add_item": "Přidat položku",
+      "preview_title": "Náhled faktury"
+    },
+    "alert": {
+      "confirm_delete": "Opravdu chcete smazat tuto fakturu?",
+      "empty_item_description": "Každá položka faktury musí mít vyplněný popis."
+    },
+    "modal": {
+      "missing_number_title": "Chybějící číslo faktury",
+      "missing_number_message": "Není vyplněno číslo faktury. Můžete ho doplnit zde, nebo fakturu uložit bez něj.",
+      "number_label": "Číslo faktury",
+      "confirm_save": "Doplnit a uložit"
+    },
+    "preview": {
+      "loading": "Načítání dat pro náhled..."
+    }
+  }, 
+    "backup_system": {
+      "tabs": {
+        "general_settings": "Obecné nastavení",
+        "create_backup": "Vytvoření zálohy",
+        "restore_backup": "Obnovení ze zálohy",
+        "backup_settings": "Nastavení připomínek"
+      },
+      "create_backup": {
+        "title": "Vytvoření zálohy",
+        "full_backup": "Kompletní záloha",
+        "documents_backup": "Záloha dokumentů",
+        "creating": "Vytváření zálohy...",
+        "success_full": "Kompletní záloha byla úspěšně vytvořena a stažena!",
+        "success_documents": "Záloha dokumentů byla úspěšně vytvořena a stažena!",
+        "error": "Chyba při vytváření zálohy",
+        "info": {
+          "title": "Informace o zálohách",
+          "total_backups": "Celkem záloh:",
+          "last_backup": "Poslední záloha:",
+          "days_since": "Dní od poslední zálohy:",
+          "never": "Nikdy"
+        },
+        "descriptions": {
+          "full": {
+            "title": "Kompletní záloha",
+            "description": "Obsahuje všechna data: nastavení, zákazníky, produkty, faktury a dodací listy. Doporučeno pro kompletní ochranu dat."
+          },
+          "documents": {
+            "title": "Záloha dokumentů", 
+            "description": "Obsahuje pouze faktury a dodací listy. Rychlejší varianta pro zálohu nejdůležitějších dokumentů."
+          }
+        },
+        "file_info": {
+          "title": "O záložních souborech",
+          "format": "Zálohy se stahují ve formátu JSON",
+          "naming": "Názvy souborů obsahují datum a čas vytvoření",
+          "storage": "Soubory můžete uložit na svůj počítač nebo do cloudu",
+          "compatibility": "Zálohy jsou kompatibilní pouze s vaším účtem",
+          "recommendation": "Doporučujeme pravidelné zálohování (týdně)"
+        }
+      },
+      "restore_backup": {
+        "title": "Obnovení ze zálohy",
+        "warning": {
+          "title": "Důležité upozornění",
+          "message": "Obnovení ze zálohy je nevratná operace. Doporučujeme nejprve vytvořit aktuální zálohu vašich dat."
+        },
+        "file_select": {
+          "title": "Vyberte záložní soubor",
+          "description": "Nahrajte JSON soubor se zálohou vašich dat",
+          "button": "Vybrat soubor"
+        },
+        "validation": {
+          "invalid_title": "Neplatný záložní soubor",
+          "select_other": "Vybrat jiný soubor"
+        },
+        "preview": {
+          "valid_title": "Záložní soubor je platný",
+          "created": "Vytvořeno:",
+          "version": "Verze:",
+          "content": "Obsah zálohy:",
+          "settings": "Nastavení ✓",
+          "customers": "Zákazníci",
+          "products": "Produkty", 
+          "delivery_notes": "Dodací listy",
+          "invoices": "Faktury"
+        },
+        "restore_mode": {
+          "title": "Režim obnovení",
+          "add": {
+            "title": "Přidat k existujícím datům",
+            "description": "Data ze zálohy se přidají k vašim současným datům"
+          },
+          "overwrite": {
+            "title": "Přepsat všechna data",
+            "description": "⚠️ Všechna stávající data budou smazána a nahrazena daty ze zálohy"
+          }
+        },
+        "actions": {
+          "restore": "Obnovit data",
+          "restoring": "Obnovuji...",
+          "cancel": "Zrušit"
+        },
+        "results": {
+          "title": "Výsledky obnovení",
+          "success": "Obnovení proběhlo úspěšně!",
+          "errors": "Objevily se chyby:",
+          "restore_another": "Obnovit další zálohu"
+        }
+      },
+      "backup_settings": {
+        "title": "Nastavení připomínek zálohování",
+        "current_status": {
+          "title": "Aktuální stav zálohování",
+          "total_backups": "Celkem záloh:",
+          "last_backup": "Poslední záloha:",
+          "days_since": "Dní od poslední zálohy:",
+          "status": "Stav:",
+          "remind": "Připomenout",
+          "ok": "OK"
+        },
+        "snooze": {
+          "title": "Odložit připomínky:",
+          "1_day": "1 den",
+          "3_days": "3 dny", 
+          "1_week": "1 týden"
+        },
+        "enable_reminders": {
+          "title": "Povolit připomínky",
+          "description": "Zobrazovat upozornění, když je čas vytvořit zálohu"
+        },
+        "frequency": {
+          "title": "Frekvence připomínek",
+          "description": "Každých kolik dní připomenout zálohování",
+          "1_day": "1 den",
+          "3_days": "3 dny",
+          "1_week": "1 týden", 
+          "2_weeks": "2 týdny",
+          "1_month": "1 měsíc"
+        },
+        "auto_backup": {
+          "title": "Automatické zálohování",
+          "description": "Automaticky vytvářet zálohy podle nastavené frekvence (funkce připravována)"
+        },
+        "actions": {
+          "save": "Uložit nastavení",
+          "reset": "Výchozí nastavení",
+          "test_reminder": "Test připomínky"
+        },
+        "tips": {
+          "title": "Tipy pro zálohování",
+          "weekly": "Doporučujeme zálohovat data alespoň jednou týdně",
+          "multiple_locations": "Záložní soubory ukládejte na více míst (počítač, cloud, externí disk)",
+          "test_restore": "Pravidelně testujte obnovení ze zálohy",
+          "before_changes": "Před většími změnami v aplikaci vytvořte zálohu",
+          "snooze_option": "Připomínky můžete dočasně odložit pomocí tlačítek výše"
+        }
+      },
+      "reminder": {
+        "title": "Čas na zálohu!",
+        "never_created": "Ještě jste nevytvořili žádnou zálohu. Doporučujeme vytvořit zálohu vašich dat.",
+        "days_since": "Poslední záloha byla vytvořena před {{days}} dny. Doporučená frekvence je každých {{interval}} dní.",
+        "stats": {
+          "total_backups": "Celkem záloh: {{count}}",
+          "days_since": "Dní od poslední zálohy: {{days}}"
+        },
+        "actions": {
+          "create_backup": "Vytvořit zálohu",
+          "snooze_1_day": "Odložit na 1 den",
+          "snooze_3_days": "Odložit na 3 dny",
+          "close": "Zavřít bez akce"
+        },
+        "snooze_success": "Připomínky odloženy na {{days}} {{dayWord}}.",
+        "day_singular": "den",
+        "days_plural": "dny",
+        "test_activated": "Test připomínky aktivován! Připomínka by se měla zobrazit za chvíli."
+      },
+      "common": {
+        "login_required": "Pro {{action}} se musíte přihlásit.",
+        "error_prefix": "Chyba:",
+        "loading": "Načítání...",
+        "na": "N/A"
+      }
+    },
+    "attendance": {
+      "title": "Evidence pracovní doby",
+      "subtitle": "Správa odpracovaných hodin zaměstnanců",
+      "add_record": "Přidat záznam",
+      "export_csv": "CSV",
+      "print": "Tisk",
+      "no_records": "Žádné záznamy nebyly nalezeny",
+      "stats": {
+        "title": "Statistiky za vybrané období",
+        "total_hours": "Celkem hodin",
+        "work_days": "Pracovních dní",
+        "avg_hours": "Průměr hodin/den",
+        "overtime": "Přesčasy"
+      },
+      "filters": {
+        "title": "Filtry",
+        "employee": "Zaměstnanec",
+        "period": "Období",
+        "work_type": "Typ práce",
+        "all_employees": "Všichni zaměstnanci",
+        "all_records": "Všechny záznamy",
+        "all_time": "Všechna období",
+        "all_types": "Všechny typy práce",
+        "today": "Dnes",
+        "this_week": "Tento týden",
+        "this_month": "Tento měsíc",
+        "clear_filters": "Vymazat filtry",
+        "actions": "Akce",
+        "cancel": "Storno",
+        "delete": "Vymazat"   
+      },
+      "form": {
+        "title": "Přidat nový záznam",
+        "employee_name": "Jméno zaměstnance",
+        "work_date": "Datum práce",
+        "start_time": "Začátek práce",
+        "end_time": "Konec práce",
+        "break_duration": "Přestávka (hodiny)",
+        "add_record": "Přidat záznam"
+      },
+      "table": {
+        "employee": "Zaměstnanec",
+        "date": "Datum",
+        "work_time": "Prac. doba",
+        "total_hours": "Hodiny (celkem)",
+        "work_type": "Typ práce"
+      },
+      "legal": {
+        "title": "Zákonné požadavky",
+        "description": "Podle § 96 zákoníku práce je zaměstnavatel povinen vést evidenci pracovní doby všech zaměstnanců. Evidence musí obsahovat začátek a konec směny, práci přesčas, noční práci a pracovní pohotovost. Záznamy je nutné archivovat po zákonem stanovenou dobu."
+      },
+      "work_types": {
+        "regular": "Běžná práce",
+        "overtime": "Přesčas", 
+        "night_shift": "Noční směna",
+        "weekend_holiday": "Víkend/svátek"
+      }
+      
+    }
+  }
